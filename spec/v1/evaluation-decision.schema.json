@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/evo-ethics/v1/evaluation-decision.schema.json",
+  "title": "EvoEthics Evaluation Decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "decision",
+    "principles",
+    "controls",
+    "obligations",
+    "policy_version",
+    "policy_digest",
+    "audit_id",
+    "explanation"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "decision": {
+      "enum": [
+        "allow",
+        "allow_with_obligations",
+        "require_approval",
+        "require_review",
+        "deny"
+      ]
+    },
+    "principles": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "enum": ["E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10"] }
+    },
+    "controls": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^EC-[A-Z0-9]+-[0-9]{3}$"
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "detail"],
+        "properties": {
+          "kind": {
+            "enum": [
+              "record_audit",
+              "minimize_data",
+              "disclose_external_provider",
+              "obtain_explicit_approval",
+              "verify_approval_binding",
+              "acknowledge_irreversibility",
+              "human_design_review"
+            ]
+          },
+          "detail": { "type": "string", "minLength": 1, "maxLength": 1024 }
+        }
+      }
+    },
+    "policy_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "policy_digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^sha256:"
+    },
+    "audit_id": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "explanation": { "type": "string", "minLength": 1, "maxLength": 2048 }
+  }
+}

@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+  title: EvoEthics Evaluation API
+  version: 0.1.0-proposal
+  description: >-
+    Optional local or private adapter for the EvoEthics evaluation contract.
+    Embedded SDK evaluation is preferred. This API does not expose policy mutation.
+servers:
+  - url: https://saturn-control.internal/api/ethics
+    description: Illustrative private deployment; not a public endpoint.
+paths:
+  /v1/evaluations:
+    post:
+      operationId: evaluateEthicsPolicy
+      summary: Evaluate one registered action against the active policy bundle.
+      security:
+        - mutualTLS: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ./evaluation-request.schema.json
+      responses:
+        '200':
+          description: Deterministic policy decision.
+          content:
+            application/json:
+              schema:
+                $ref: ./evaluation-decision.schema.json
+        '400':
+          description: Malformed or unsupported request.
+        '409':
+          description: No valid active policy bundle or incompatible schema version.
+        '413':
+          description: Request exceeds configured size limits.
+  /v1/policy/manifest:
+    get:
+      operationId: getActivePolicyManifest
+      summary: Return non-sensitive metadata for the active policy bundle.
+      security:
+        - mutualTLS: []
+      responses:
+        '200':
+          description: Active policy metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [policy_version, ethics_source_version, digest]
+                properties:
+                  policy_version:
+                    type: string
+                  ethics_source_version:
+                    type: string
+                  digest:
+                    type: string
+                    pattern: '^sha256:'
+  /v1/health:
+    get:
+      operationId: getEthicsServiceHealth
+      summary: Report process health and whether a validated policy is active.
+      responses:
+        '200':
+          description: Healthy with an active validated policy.
+        '503':
+          description: No valid active policy; callers must fail closed for protected actions.
+components:
+  securitySchemes:
+    mutualTLS:
+      type: mutualTLS

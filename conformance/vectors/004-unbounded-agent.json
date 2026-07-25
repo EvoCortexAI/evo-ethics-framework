@@ -1,0 +1,30 @@
+{
+  "name": "agentic execution without bounded scope is denied",
+  "request": {
+    "schema_version": "1.0.0",
+    "request_id": "vector-004",
+    "timestamp": "2026-07-25T12:04:00Z",
+    "component": "saturn-control",
+    "phase": "runtime",
+    "action": "agent.execute.bounded",
+    "actor": { "kind": "bounded_agent", "id": "agent-001" },
+    "resource": { "kind": "task", "id": "task-vector-004" },
+    "context": {
+      "execution_target": "private_node",
+      "data_sensitivity": "confidential",
+      "external_provider": null,
+      "network_egress": false,
+      "agency": "bounded_agentic",
+      "explicit_approval": "confirmed",
+      "audit_ready": "confirmed",
+      "bounded_scope": "absent",
+      "interruptible": "confirmed",
+      "reversible": "confirmed",
+      "provider_portability": "confirmed"
+    }
+  },
+  "expected": {
+    "decision": "deny",
+    "required_controls": ["EC-E4-002"]
+  }
+}

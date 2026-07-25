@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "request_id": "req-container-delete-001",
+  "timestamp": "2026-07-25T12:02:00Z",
+  "component": "saturn-container",
+  "phase": "runtime",
+  "action": "container.delete",
+  "actor": {
+    "kind": "human",
+    "id": "local-user"
+  },
+  "resource": {
+    "kind": "container",
+    "id": "container-example-001"
+  },
+  "context": {
+    "execution_target": "local_device",
+    "data_sensitivity": "internal",
+    "external_provider": null,
+    "network_egress": false,
+    "agency": "human_initiated",
+    "explicit_approval": "absent",
+    "audit_ready": "confirmed",
+    "bounded_scope": "not_applicable",
+    "interruptible": "not_applicable",
+    "reversible": "absent",
+    "provider_portability": "not_applicable"
+  }
+}

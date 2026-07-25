@@ -1,0 +1,30 @@
+{
+  "audit_id" : "ethics:req-external-restricted-001:0.1.0-proposal",
+  "controls" : [
+    "EC-E3-002",
+    "EC-E2-001",
+    "EC-E2-003",
+    "EC-E2-004",
+    "EC-E4-004"
+  ],
+  "decision" : "deny",
+  "explanation" : "Decision produced by controls: EC-E3-002, EC-E2-001, EC-E2-003, EC-E2-004, EC-E4-004.",
+  "obligations" : [
+    {
+      "detail" : "Record the decision basis and final enforcement outcome without raw user content.",
+      "kind" : "record_audit"
+    }
+  ],
+  "policy_digest" : "sha256:development-bundle-not-signed",
+  "policy_version" : "0.1.0-proposal",
+  "principles" : [
+    "E1",
+    "E2",
+    "E3",
+    "E4",
+    "E6",
+    "E10"
+  ],
+  "request_id" : "req-external-restricted-001",
+  "schema_version" : "1.0.0"
+}

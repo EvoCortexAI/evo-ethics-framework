@@ -1,0 +1,30 @@
+{
+  "name": "design with no provider portability requires review",
+  "request": {
+    "schema_version": "1.0.0",
+    "request_id": "vector-005",
+    "timestamp": "2026-07-25T12:05:00Z",
+    "component": "evo-intelligence-fabric",
+    "phase": "design",
+    "action": "architecture.external-provider-dependency",
+    "actor": { "kind": "human", "id": "architecture-reviewer" },
+    "resource": { "kind": "architecture-proposal", "id": "proposal-vector-005" },
+    "context": {
+      "execution_target": "external_service",
+      "data_sensitivity": "internal",
+      "external_provider": "single-provider",
+      "network_egress": true,
+      "agency": "assisted",
+      "explicit_approval": "not_applicable",
+      "audit_ready": "confirmed",
+      "bounded_scope": "not_applicable",
+      "interruptible": "not_applicable",
+      "reversible": "confirmed",
+      "provider_portability": "absent"
+    }
+  },
+  "expected": {
+    "decision": "require_review",
+    "required_controls": ["EC-E10-001"]
+  }
+}

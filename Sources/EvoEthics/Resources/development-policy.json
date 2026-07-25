@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0.0",
+  "policy_version": "0.1.0-proposal",
+  "ethics_source_version": "1.1-proposed",
+  "digest": "sha256:development-bundle-not-signed",
+  "actions": [
+    {
+      "id": "model.infer.local",
+      "risk": "low",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "model.infer.external",
+      "risk": "high",
+      "requires_audit": true,
+      "requires_approval": true,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "orchestration.dispatch",
+      "risk": "moderate",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "container.list",
+      "risk": "low",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "container.start",
+      "risk": "moderate",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "container.stop",
+      "risk": "moderate",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "container.delete",
+      "risk": "high",
+      "requires_audit": true,
+      "requires_approval": true,
+      "destructive": true,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "container.exec",
+      "risk": "high",
+      "requires_audit": true,
+      "requires_approval": true,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "agent.execute.bounded",
+      "risk": "high",
+      "requires_audit": true,
+      "requires_approval": true,
+      "destructive": false,
+      "allowed_phases": ["runtime"]
+    },
+    {
+      "id": "architecture.external-provider-dependency",
+      "risk": "high",
+      "requires_audit": true,
+      "requires_approval": false,
+      "destructive": false,
+      "allowed_phases": ["design"]
+    }
+  ]
+}

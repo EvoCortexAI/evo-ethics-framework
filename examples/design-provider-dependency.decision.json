@@ -1,0 +1,35 @@
+{
+  "audit_id" : "ethics:req-design-provider-001:0.1.0-proposal",
+  "controls" : [
+    "EC-E3-002",
+    "EC-E2-003",
+    "EC-E10-001"
+  ],
+  "decision" : "require_review",
+  "explanation" : "Decision produced by controls: EC-E3-002, EC-E2-003, EC-E10-001.",
+  "obligations" : [
+    {
+      "detail" : "Record the decision basis and final enforcement outcome without raw user content.",
+      "kind" : "record_audit"
+    },
+    {
+      "detail" : "Disclose the external provider and execution target before execution.",
+      "kind" : "disclose_external_provider"
+    },
+    {
+      "detail" : "Document portability, graceful degradation, or a justified exception to provider independence.",
+      "kind" : "human_design_review"
+    }
+  ],
+  "policy_digest" : "sha256:development-bundle-not-signed",
+  "policy_version" : "0.1.0-proposal",
+  "principles" : [
+    "E2",
+    "E3",
+    "E6",
+    "E8",
+    "E10"
+  ],
+  "request_id" : "req-design-provider-001",
+  "schema_version" : "1.0.0"
+}

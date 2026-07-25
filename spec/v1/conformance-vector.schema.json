@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/evo-ethics/v1/conformance-vector.schema.json",
+  "title": "EvoEthics Conformance Vector",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "request", "expected"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "request": { "type": "object" },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "required_controls"],
+      "properties": {
+        "decision": {
+          "enum": [
+            "allow",
+            "allow_with_obligations",
+            "require_approval",
+            "require_review",
+            "deny"
+          ]
+        },
+        "required_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^EC-[A-Z0-9]+-[0-9]{3}$" }
+        },
+        "forbidden_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^EC-[A-Z0-9]+-[0-9]{3}$" }
+        }
+      }
+    }
+  }
+}

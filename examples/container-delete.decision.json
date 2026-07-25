@@ -1,0 +1,35 @@
+{
+  "audit_id" : "ethics:req-container-delete-001:0.1.0-proposal",
+  "controls" : [
+    "EC-E3-002",
+    "EC-E4-001",
+    "EC-E7-002"
+  ],
+  "decision" : "require_approval",
+  "explanation" : "Decision produced by controls: EC-E3-002, EC-E4-001, EC-E7-002.",
+  "obligations" : [
+    {
+      "detail" : "Record the decision basis and final enforcement outcome without raw user content.",
+      "kind" : "record_audit"
+    },
+    {
+      "detail" : "Obtain exact, informed approval before the side effect.",
+      "kind" : "obtain_explicit_approval"
+    },
+    {
+      "detail" : "Make irreversibility and available recovery options explicit before approval.",
+      "kind" : "acknowledge_irreversibility"
+    }
+  ],
+  "policy_digest" : "sha256:development-bundle-not-signed",
+  "policy_version" : "0.1.0-proposal",
+  "principles" : [
+    "E1",
+    "E3",
+    "E4",
+    "E6",
+    "E7"
+  ],
+  "request_id" : "req-container-delete-001",
+  "schema_version" : "1.0.0"
+}

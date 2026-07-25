@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/evo-ethics/v1/policy-bundle.schema.json",
+  "title": "EvoEthics Policy Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "policy_version",
+    "ethics_source_version",
+    "digest",
+    "actions"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "policy_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "ethics_source_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "digest": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^sha256:"
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "risk",
+          "requires_audit",
+          "requires_approval",
+          "destructive",
+          "allowed_phases"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "risk": { "enum": ["low", "moderate", "high", "critical"] },
+          "requires_audit": { "type": "boolean" },
+          "requires_approval": { "type": "boolean" },
+          "destructive": { "type": "boolean" },
+          "allowed_phases": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": { "enum": ["runtime", "design"] }
+          }
+        }
+      }
+    }
+  }
+}

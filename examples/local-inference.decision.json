@@ -1,0 +1,22 @@
+{
+  "audit_id" : "ethics:req-local-inference-001:0.1.0-proposal",
+  "controls" : [
+    "EC-E3-002"
+  ],
+  "decision" : "allow_with_obligations",
+  "explanation" : "Decision produced by controls: EC-E3-002.",
+  "obligations" : [
+    {
+      "detail" : "Record the decision basis and final enforcement outcome without raw user content.",
+      "kind" : "record_audit"
+    }
+  ],
+  "policy_digest" : "sha256:development-bundle-not-signed",
+  "policy_version" : "0.1.0-proposal",
+  "principles" : [
+    "E3",
+    "E6"
+  ],
+  "request_id" : "req-local-inference-001",
+  "schema_version" : "1.0.0"
+}

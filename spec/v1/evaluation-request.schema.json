@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/evo-ethics/v1/evaluation-request.schema.json",
+  "title": "EvoEthics Evaluation Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "timestamp",
+    "component",
+    "phase",
+    "action",
+    "actor",
+    "resource",
+    "context"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "component": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "phase": { "enum": ["runtime", "design"] },
+    "action": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "enum": ["human", "service", "bounded_agent"] },
+        "id": { "type": "string", "minLength": 1, "maxLength": 256 }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "id": { "type": "string", "minLength": 1, "maxLength": 512 }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_target",
+        "data_sensitivity",
+        "network_egress",
+        "agency",
+        "explicit_approval",
+        "audit_ready",
+        "bounded_scope",
+        "interruptible",
+        "reversible",
+        "provider_portability"
+      ],
+      "properties": {
+        "execution_target": {
+          "enum": ["local_device", "private_node", "external_service"]
+        },
+        "data_sensitivity": {
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "external_provider": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "network_egress": { "type": "boolean" },
+        "agency": {
+          "enum": ["human_initiated", "assisted", "bounded_agentic"]
+        },
+        "explicit_approval": { "$ref": "#/$defs/assurance" },
+        "audit_ready": { "$ref": "#/$defs/assurance" },
+        "bounded_scope": { "$ref": "#/$defs/assurance" },
+        "interruptible": { "$ref": "#/$defs/assurance" },
+        "reversible": { "$ref": "#/$defs/assurance" },
+        "provider_portability": { "$ref": "#/$defs/assurance" }
+      }
+    }
+  },
+  "$defs": {
+    "assurance": {
+      "enum": ["confirmed", "absent", "unknown", "not_applicable"]
+    }
+  }
+}

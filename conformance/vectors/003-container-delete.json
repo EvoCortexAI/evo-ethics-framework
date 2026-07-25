@@ -1,0 +1,30 @@
+{
+  "name": "destructive local container action requires approval",
+  "request": {
+    "schema_version": "1.0.0",
+    "request_id": "vector-003",
+    "timestamp": "2026-07-25T12:02:00Z",
+    "component": "saturn-container",
+    "phase": "runtime",
+    "action": "container.delete",
+    "actor": { "kind": "human", "id": "local-user" },
+    "resource": { "kind": "container", "id": "container-vector-003" },
+    "context": {
+      "execution_target": "local_device",
+      "data_sensitivity": "internal",
+      "external_provider": null,
+      "network_egress": false,
+      "agency": "human_initiated",
+      "explicit_approval": "absent",
+      "audit_ready": "confirmed",
+      "bounded_scope": "not_applicable",
+      "interruptible": "not_applicable",
+      "reversible": "absent",
+      "provider_portability": "not_applicable"
+    }
+  },
+  "expected": {
+    "decision": "require_approval",
+    "required_controls": ["EC-E4-001", "EC-E7-002"]
+  }
+}

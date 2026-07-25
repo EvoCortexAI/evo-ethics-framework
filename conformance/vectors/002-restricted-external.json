@@ -1,0 +1,30 @@
+{
+  "name": "restricted data cannot use an external service",
+  "request": {
+    "schema_version": "1.0.0",
+    "request_id": "vector-002",
+    "timestamp": "2026-07-25T12:01:00Z",
+    "component": "saturn-control",
+    "phase": "runtime",
+    "action": "model.infer.external",
+    "actor": { "kind": "human", "id": "local-user" },
+    "resource": { "kind": "inference-job", "id": "job-vector-002" },
+    "context": {
+      "execution_target": "external_service",
+      "data_sensitivity": "restricted",
+      "external_provider": "example-provider",
+      "network_egress": true,
+      "agency": "human_initiated",
+      "explicit_approval": "confirmed",
+      "audit_ready": "confirmed",
+      "bounded_scope": "not_applicable",
+      "interruptible": "not_applicable",
+      "reversible": "not_applicable",
+      "provider_portability": "confirmed"
+    }
+  },
+  "expected": {
+    "decision": "deny",
+    "required_controls": ["EC-E2-001"]
+  }
+}

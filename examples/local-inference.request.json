@@ -1,0 +1,29 @@
+{
+  "schema_version": "1.0.0",
+  "request_id": "req-local-inference-001",
+  "timestamp": "2026-07-25T12:00:00Z",
+  "component": "saturn-control",
+  "phase": "runtime",
+  "action": "model.infer.local",
+  "actor": {
+    "kind": "human",
+    "id": "local-user"
+  },
+  "resource": {
+    "kind": "inference-job",
+    "id": "job-001"
+  },
+  "context": {
+    "execution_target": "local_device",
+    "data_sensitivity": "internal",
+    "external_provider": null,
+    "network_egress": false,
+    "agency": "human_initiated",
+    "explicit_approval": "not_applicable",
+    "audit_ready": "confirmed",
+    "bounded_scope": "not_applicable",
+    "interruptible": "not_applicable",
+    "reversible": "confirmed",
+    "provider_portability": "confirmed"
+  }
+}

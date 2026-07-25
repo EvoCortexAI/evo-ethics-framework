@@ -1,0 +1,122 @@
+schema_version: 1.0.0
+catalog_version: 0.1.0-proposal
+ethics_source_version: 1.1-proposed
+controls:
+  - id: EC-CORE-001
+    title: Required request identity
+    phases: [runtime, design]
+    principles: [E3, E6]
+    effect: deny
+    summary: Deny malformed requests missing stable component, actor, action, or resource identity.
+  - id: EC-CORE-002
+    title: Registered actions only
+    phases: [runtime, design]
+    principles: [E3, E6, E7]
+    effect: deny
+    summary: Deny any action not present in the signed action registry.
+  - id: EC-CORE-003
+    title: Phase compatibility
+    phases: [runtime, design]
+    principles: [E3, E6, E7]
+    effect: deny
+    summary: Deny an action evaluated in a phase not authorized by its action definition.
+  - id: EC-E2-001
+    title: Restricted data remains inside controlled boundaries
+    phases: [runtime]
+    principles: [E1, E2, E4]
+    effect: deny
+    summary: Deny external-service execution involving restricted data.
+  - id: EC-E2-002
+    title: Confidential external processing requires approval
+    phases: [runtime]
+    principles: [E1, E2, E4]
+    effect: require_approval
+    summary: Require exact approval before confidential data is processed by an external service.
+    obligations: [obtain_explicit_approval]
+  - id: EC-E2-003
+    title: External provider disclosure
+    phases: [runtime, design]
+    principles: [E2, E3, E10]
+    effect: allow_with_obligations
+    summary: External execution must identify and disclose the provider and execution target.
+    obligations: [disclose_external_provider]
+  - id: EC-E2-004
+    title: External data minimization
+    phases: [runtime]
+    principles: [E2]
+    effect: allow_with_obligations
+    summary: External processing receives only the minimum data required for the approved purpose.
+    obligations: [minimize_data]
+  - id: EC-E3-001
+    title: Required audit path
+    phases: [runtime, design]
+    principles: [E3, E6]
+    effect: deny
+    summary: Deny registered actions that require audit when the audit path is not confirmed.
+  - id: EC-E3-002
+    title: Audit recording obligation
+    phases: [runtime, design]
+    principles: [E3, E6]
+    effect: allow_with_obligations
+    summary: Record policy basis and enforcement outcome without raw user content.
+    obligations: [record_audit]
+  - id: EC-E3-003
+    title: External execution facts must be coherent
+    phases: [runtime, design]
+    principles: [E2, E3, E6]
+    effect: deny
+    summary: Deny external execution when provider identity or network-egress facts are missing.
+  - id: EC-E4-001
+    title: Action-defined approval requirement
+    phases: [runtime]
+    principles: [E1, E4, E7]
+    effect: require_approval
+    summary: Require approval when the signed action definition marks the operation as approval-bound.
+    obligations: [obtain_explicit_approval]
+  - id: EC-E4-002
+    title: Agentic scope must be bounded
+    phases: [runtime]
+    principles: [E1, E4, E7]
+    effect: deny
+    summary: Deny agentic execution when bounded scope is not confirmed.
+  - id: EC-E4-003
+    title: Agentic action must be interruptible
+    phases: [runtime]
+    principles: [E1, E4, E7]
+    effect: deny
+    summary: Deny agentic execution when interruptibility is not confirmed.
+  - id: EC-E4-004
+    title: Approval binding verification
+    phases: [runtime]
+    principles: [E1, E4, E6]
+    effect: allow_with_obligations
+    summary: Verify that approval matches the exact action, resource, request fingerprint, and expiry.
+    obligations: [verify_approval_binding]
+  - id: EC-E4-005
+    title: Agentic scope approval
+    phases: [runtime]
+    principles: [E1, E4, E7]
+    effect: require_approval
+    summary: Require approval of scope, duration, permissions, and resources for bounded agentic work.
+    obligations: [obtain_explicit_approval]
+  - id: EC-E7-001
+    title: Critical irreversible action review
+    phases: [runtime, design]
+    principles: [E6, E7, E8]
+    effect: require_review
+    summary: Escalate an irreversible critical action for human review of safeguards and recovery.
+    obligations: [human_design_review]
+  - id: EC-E7-002
+    title: Irreversibility acknowledgment
+    phases: [runtime]
+    principles: [E1, E6, E7]
+    effect: require_approval
+    summary: Make irreversibility and recovery options explicit before approval.
+    obligations: [acknowledge_irreversibility]
+  - id: EC-E10-001
+    title: Provider portability review
+    phases: [design]
+    principles: [E8, E10]
+    effect: require_review
+    summary: Require documented portability, graceful degradation, or a justified exception.
+    obligations: [human_design_review]

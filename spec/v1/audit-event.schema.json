@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/evo-ethics/v1/audit-event.schema.json",
+  "title": "EvoEthics Audit Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "timestamp",
+    "request_id",
+    "request_fingerprint",
+    "component",
+    "action",
+    "decision",
+    "controls",
+    "policy_version",
+    "policy_digest",
+    "enforcement_outcome"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "event_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "request_fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "component": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "action": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "decision": {
+      "enum": [
+        "allow",
+        "allow_with_obligations",
+        "require_approval",
+        "require_review",
+        "deny"
+      ]
+    },
+    "controls": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^EC-[A-Z0-9]+-[0-9]{3}$" }
+    },
+    "policy_version": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "policy_digest": { "type": "string", "pattern": "^sha256:" },
+    "approval_reference": {
+      "type": ["string", "null"],
+      "maxLength": 512
+    },
+    "enforcement_outcome": {
+      "enum": ["executed", "blocked", "cancelled", "failed", "not_started"]
+    },
+    "error_code": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    }
+  }
+}
