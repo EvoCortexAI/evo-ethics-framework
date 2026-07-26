@@ -1,6 +1,6 @@
 # EvoEthics Framework
 
-**Status:** In development. Public-repository proposal; not production-ready.  
+**Status:** In development. Repository proposal; not production-ready.  
 **Ethics source:** `docs/ETHICS-RULES.md` version `1.1-proposed`, pending founder approval.
 
 EvoEthics is the proposed ethics-policy subsystem of **EvoIntelligenceFabric**. It converts approved EvoCortexAI ethical constraints into deterministic, inspectable policy decisions that Saturn components can enforce.
@@ -40,7 +40,7 @@ The preferred path is an **embedded evaluator**. An optional local API adapter e
 
 ## Naming
 
-- Public repository: `EvoCortexAI/evo-ethics-framework`
+- Repository: `EvoCortexAI/evo-ethics-framework`
 - Framework/subsystem: **EvoEthics**
 - Swift module: `EvoEthics`
 - Apple distributable, if needed later: `EvoEthics.xcframework`
@@ -69,6 +69,49 @@ A decision includes:
 - a concise explanation that does not contain raw user content
 
 Ethical principle IDs and executable control IDs are intentionally separate. Principles are normative. Controls are testable implementation rules derived from those principles.
+
+## Saturn MVP integration boundary
+
+EvoEthics does **not** block the first Saturn local-inference proof:
+
+```text
+Saturn One -> Saturn-Control -> Saturn-Node -> local MLX model
+```
+
+The initial vertical slice must preserve the intended ethical architecture through explicit product and API constraints even before production policy enforcement is enabled:
+
+- local/private execution is the default route;
+- the selected model, node, execution location, timing, and outcome are visible;
+- generation is interruptible and cancellation is propagated;
+- failures are attributable to a component and request ID;
+- standard logs exclude prompt and generated-response bodies;
+- successful chat generation does not authorize tools, file changes, infrastructure actions, or other side effects.
+
+After the local-inference acceptance gate passes, the first proposed policy action is:
+
+```text
+inference.chat.local
+```
+
+Proposed obligations:
+
+- `local_execution`
+- `metadata_audit`
+- `content_logging_disabled`
+- `interruptible`
+
+The evaluation request should use operational metadata only. It must not include the prompt, conversation text, generated content, credentials, or private document bodies.
+
+Production enforcement remains blocked until:
+
+- `ETHICS-RULES.md` is approved;
+- the action and control catalog is reviewed;
+- policy-bundle signing and downgrade resistance are defined;
+- request and receipt schemas pass security review;
+- rollback behavior and evaluator failure semantics are tested;
+- component integrations pass conformance tests.
+
+This staging prevents an unfinished governance subsystem from becoming a fragile remote dependency while preserving a clear route to enforceable policy.
 
 ## Repository contents
 
@@ -101,14 +144,16 @@ The reference evaluator is intentionally small. It demonstrates the contract and
 - A UI approval is not sufficient unless it is cryptographically or transactionally bound to the exact requested operation.
 - Evaluation failures must not silently become permission.
 - Policy updates must be versioned, validated, signed before production use, and rolled out with an explicit rollback path.
+- Basic local chat remains a read/generate path; tool execution and external side effects require separately registered actions and controls.
 
 ## Current blockers before public release
 
 1. Founder approval of `ETHICS-RULES.md` version `1.1-proposed`.
 2. Canonical naming decision for **Saturn Container** in the company document set.
 3. Approval of the public license. The recommended model is Apache-2.0 for code and CC BY 4.0 for normative documentation and specifications.
-4. Selection of the public repository as the canonical approved source, or an explicit generated-mirror rule if another repository remains canonical.
-5. Security review of the request, decision, policy-bundle, and audit schemas.
+4. Selection of this repository as the canonical approved source, or an explicit generated-mirror rule if another repository remains canonical.
+5. Security review of the request, decision, policy-bundle, receipt, and audit schemas.
+6. Confirmation of repository visibility and public-release readiness; repository existence alone does not authorize publication.
 
 ## Non-goals
 
@@ -117,5 +162,6 @@ The reference evaluator is intentionally small. It demonstrates the contract and
 - Replacing product authorization, authentication, sandboxing, or OS controls.
 - Treating an `allow` decision as proof that an outcome is beneficial.
 - Encoding abstract concepts such as Human Flourishing as an opaque runtime score.
+- Blocking local inference on a network call to EvoEthics.
 
-See `docs/ROADMAP.md` for the proposed release sequence.
+See `docs/ROADMAP.md` for the proposed release sequence and the Saturn-Control `docs/SATURN-MVP.md` plan for MVP staging.
