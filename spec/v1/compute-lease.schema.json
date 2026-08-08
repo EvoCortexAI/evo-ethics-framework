@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/saturn/v1/compute-lease.schema.json",
+  "title": "ComputeLease",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "leaseID",
+    "fingerprint",
+    "nodeID",
+    "modelID",
+    "contextLimit",
+    "outputLimit",
+    "concurrencyLimit",
+    "sealAlgorithm",
+    "sealValue",
+    "issuedAt",
+    "expiry"
+  ],
+  "properties": {
+    "leaseID": { "type": "string", "minLength": 1 },
+    "fingerprint": { "$ref": "authority-fingerprint.schema.json" },
+    "nodeID": { "type": "string", "minLength": 1 },
+    "modelID": { "type": "string", "minLength": 1 },
+    "contextLimit": { "type": "integer", "minimum": 1 },
+    "outputLimit": { "type": "integer", "minimum": 1 },
+    "concurrencyLimit": { "type": "integer", "minimum": 1 },
+    "budget": { "type": ["string", "null"] },
+    "sealAlgorithm": { "type": "string", "minLength": 1 },
+    "sealValue": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiry": { "type": "string", "format": "date-time" }
+  }
+}

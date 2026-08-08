@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/saturn/v1/authority-receipt.schema.json",
+  "title": "AuthorityReceipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receiptID",
+    "fingerprint",
+    "decisionOutcome",
+    "sealAlgorithm",
+    "sealValue",
+    "issuedAt",
+    "expiry"
+  ],
+  "properties": {
+    "receiptID": { "type": "string", "minLength": 1 },
+    "fingerprint": { "$ref": "authority-fingerprint.schema.json" },
+    "decisionOutcome": {
+      "type": "string",
+      "enum": ["allow", "allow_with_obligations", "require_approval", "require_review", "deny"]
+    },
+    "obligations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sealAlgorithm": { "type": "string", "minLength": 1 },
+    "sealValue": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiry": { "type": "string", "format": "date-time" }
+  }
+}

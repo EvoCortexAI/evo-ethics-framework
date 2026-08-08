@@ -8,11 +8,16 @@ let package = Package(
     ],
     products: [
         .library(name: "EvoEthics", targets: ["EvoEthics"]),
+        .library(name: "SaturnAuthority", targets: ["SaturnAuthority"]),
         .executable(name: "evo-ethicsctl", targets: ["evo-ethicsctl"])
     ],
     targets: [
         .target(
+            name: "SaturnAuthority"
+        ),
+        .target(
             name: "EvoEthics",
+            dependencies: ["SaturnAuthority"],
             resources: [.process("Resources")]
         ),
         .executableTarget(
@@ -21,7 +26,11 @@ let package = Package(
         ),
         .testTarget(
             name: "EvoEthicsTests",
-            dependencies: ["EvoEthics"]
+            dependencies: ["EvoEthics", "SaturnAuthority"]
+        ),
+        .testTarget(
+            name: "SaturnAuthorityTests",
+            dependencies: ["SaturnAuthority"]
         )
     ]
 )

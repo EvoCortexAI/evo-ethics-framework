@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evocortex.ai/schemas/saturn/v1/authority-fingerprint.schema.json",
+  "title": "AuthorityFingerprint",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "actorID",
+    "actionID",
+    "resourceID",
+    "operationID",
+    "deploymentID",
+    "workloadID",
+    "imageDigest",
+    "runnerID",
+    "nodeID",
+    "modelID",
+    "policyVersion",
+    "policyBundleDigest",
+    "issuedAt",
+    "expiry",
+    "nonce",
+    "bindingAlgorithm",
+    "keyID"
+  ],
+  "properties": {
+    "actorID": { "type": "string", "minLength": 1 },
+    "actionID": { "type": "string", "minLength": 1 },
+    "resourceID": { "type": "string", "minLength": 1 },
+    "operationID": { "type": "string", "minLength": 1 },
+    "deploymentID": { "type": "string", "minLength": 1 },
+    "workloadID": { "type": "string", "minLength": 1 },
+    "imageDigest": { "type": "string", "minLength": 1 },
+    "runnerID": { "type": "string", "minLength": 1 },
+    "nodeID": { "type": "string", "minLength": 1 },
+    "modelID": { "type": "string", "minLength": 1 },
+    "toolOrResourceID": { "type": ["string", "null"] },
+    "dataClassification": { "type": ["string", "null"] },
+    "resourceLimits": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "computeLimits": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "approvalReference": { "type": ["string", "null"] },
+    "policyVersion": { "type": "string", "minLength": 1 },
+    "policyBundleDigest": { "type": "string", "minLength": 1 },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiry": { "type": "string", "format": "date-time" },
+    "nonce": { "type": "string", "minLength": 1 },
+    "bindingAlgorithm": { "type": "string", "minLength": 1 },
+    "keyID": { "type": "string", "minLength": 1 }
+  }
+}
