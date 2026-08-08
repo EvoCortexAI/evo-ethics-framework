@@ -1,31 +1,27 @@
-import Testing
+import XCTest
 @testable import EvoEthics
 
-@Suite("EvoEthics reference evaluator")
-struct EvoEthicsTests {
+final class EvoEthicsTests: XCTestCase {
+    private var policy: PolicyBundle!
+    private var evaluator: ReferenceEthicsEvaluator!
 
-    private let policy: PolicyBundle
-    private let evaluator: ReferenceEthicsEvaluator
-
-    init() throws {
-        self.policy = try PolicyBundleLoader.bundledDevelopmentPolicy()
-        self.evaluator = ReferenceEthicsEvaluator(policy: policy)
+    override func setUpWithError() throws {
+        policy = try PolicyBundleLoader.bundledDevelopmentPolicy()
+        evaluator = ReferenceEthicsEvaluator(policy: policy)
     }
 
-    @Test("local inference allows with audit obligation")
-    func localInferenceAllowsWithAuditObligation() {
+    func testLocalInferenceAllowsWithAuditObligation() {
         let decision = evaluator.evaluate(request(
             action: "model.infer.local",
             context: safeLocalContext()
         ))
 
-        #expect(decision.decision == .allowWithObligations)
-        #expect(decision.controls.contains("EC-E3-002"))
-        #expect(decision.obligations.contains { $0.kind == .recordAudit })
+        XCTAssertEqual(decision.decision, .allowWithObligations)
+        XCTAssertTrue(decision.controls.contains("EC-E3-002"))
+        XCTAssertTrue(decision.obligations.contains { $0.kind == .recordAudit })
     }
 
-    @Test("restricted external inference is denied")
-    func restrictedExternalInferenceIsDenied() {
+    func testRestrictedExternalInferenceIsDenied() {
         let context = EvaluationContext(
             executionTarget: .externalService,
             dataSensitivity: .restricted,
@@ -45,14 +41,13 @@ struct EvoEthicsTests {
             context: context
         ))
 
-        #expect(decision.decision == .deny)
-        #expect(decision.controls.contains("EC-E2-001"))
-        #expect(decision.principles.contains(.e2))
-        #expect(decision.obligations.map(\.kind) == [.recordAudit])
+        XCTAssertEqual(decision.decision, .deny)
+        XCTAssertTrue(decision.controls.contains("EC-E2-001"))
+        XCTAssertTrue(decision.principles.contains(.e2))
+        XCTAssertEqual(decision.obligations.map(\.kind), [.recordAudit])
     }
 
-    @Test("container delete requires approval and irreversibility acknowledgement")
-    func containerDeleteRequiresApprovalAndIrreversibilityAcknowledgement() {
+    func testContainerDeleteRequiresApprovalAndIrreversibilityAcknowledgement() {
         let context = EvaluationContext(
             executionTarget: .localDevice,
             dataSensitivity: .internalData,
@@ -72,14 +67,13 @@ struct EvoEthicsTests {
             context: context
         ))
 
-        #expect(decision.decision == .requireApproval)
-        #expect(decision.controls.contains("EC-E4-001"))
-        #expect(decision.controls.contains("EC-E7-002"))
-        #expect(decision.obligations.contains { $0.kind == .acknowledgeIrreversibility })
+        XCTAssertEqual(decision.decision, .requireApproval)
+        XCTAssertTrue(decision.controls.contains("EC-E4-001"))
+        XCTAssertTrue(decision.controls.contains("EC-E7-002"))
+        XCTAssertTrue(decision.obligations.contains { $0.kind == .acknowledgeIrreversibility })
     }
 
-    @Test("unbounded agentic action is denied")
-    func unboundedAgenticActionIsDenied() {
+    func testUnboundedAgenticActionIsDenied() {
         let context = EvaluationContext(
             executionTarget: .privateNode,
             dataSensitivity: .confidential,
@@ -98,23 +92,21 @@ struct EvoEthicsTests {
             context: context
         ))
 
-        #expect(decision.decision == .deny)
-        #expect(decision.controls.contains("EC-E4-002"))
+        XCTAssertEqual(decision.decision, .deny)
+        XCTAssertTrue(decision.controls.contains("EC-E4-002"))
     }
 
-    @Test("unknown action fails closed")
-    func unknownActionFailsClosed() {
+    func testUnknownActionFailsClosed() {
         let decision = evaluator.evaluate(request(
             action: "unknown.action",
             context: safeLocalContext()
         ))
 
-        #expect(decision.decision == .deny)
-        #expect(decision.controls == ["EC-CORE-002"])
+        XCTAssertEqual(decision.decision, .deny)
+        XCTAssertEqual(decision.controls, ["EC-CORE-002"])
     }
 
-    @Test("design dependency without portability requires review")
-    func designDependencyWithoutPortabilityRequiresReview() {
+    func testDesignDependencyWithoutPortabilityRequiresReview() {
         let context = EvaluationContext(
             executionTarget: .externalService,
             dataSensitivity: .internalData,
@@ -135,17 +127,14 @@ struct EvoEthicsTests {
             context: context
         ))
 
-        #expect(decision.decision == .requireReview)
-        #expect(decision.controls.contains("EC-E10-001"))
+        XCTAssertEqual(decision.decision, .requireReview)
+        XCTAssertTrue(decision.controls.contains("EC-E10-001"))
     }
 
-    @Test("evaluation is deterministic")
-    func evaluationIsDeterministic() {
+    func testEvaluationIsDeterministic() {
         let value = request(action: "model.infer.local", context: safeLocalContext())
-        #expect(evaluator.evaluate(value) == evaluator.evaluate(value))
+        XCTAssertEqual(evaluator.evaluate(value), evaluator.evaluate(value))
     }
-
-    // MARK: - Helpers
 
     private func request(
         component: String = "saturn-control",
