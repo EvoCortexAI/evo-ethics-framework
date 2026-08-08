@@ -23,10 +23,26 @@ jobs:
 
       - name: Install schema validation dependencies
         run: |
-          python3 -m venv .venv
+          set -euo pipefail
+
+          # Prefer modern Python; the organization self-hosted runner currently
+          # has system python3 == 3.9 which cannot satisfy jsonschema 4.26.
+          if command -v python3.12 >/dev/null 2>&1; then
+            PYTHON=python3.12
+          elif command -v python3.11 >/dev/null 2>&1; then
+            PYTHON=python3.11
+          elif command -v python3.10 >/dev/null 2>&1; then
+            PYTHON=python3.10
+          else
+            PYTHON=python3
+          fi
+
+          echo "Using interpreter: $($PYTHON --version) ($($PYTHON -c 'import sys; print(sys.executable)'))"
+
+          $PYTHON -m venv .venv
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install --disable-pip-version-check \
-            jsonschema==4.23.0 \
+            jsonschema==4.26.0 \
             PyYAML==6.0.3
 
       - name: Validate schemas, policies, examples, and vectors
