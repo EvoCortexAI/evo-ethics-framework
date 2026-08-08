@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, apple-ci, xcode-26-6]
     steps:
       - uses: actions/checkout@v4
 

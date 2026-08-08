@@ -136,7 +136,7 @@ Production enforcement remains blocked until:
 
 ## Development quick start
 
-Requirements: Swift 6 and Python 3.11+.
+Requirements: Swift 6.3 / Xcode 26 / macOS 26 on the organization self-hosted runner (`saturn-ci-apple-01` labels: `self-hosted`, `macOS`, `ARM64`, `apple-ci`, `xcode-26-6`). Python 3.11+.
 
 ```sh
 swift test
