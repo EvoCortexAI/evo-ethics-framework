@@ -19,9 +19,7 @@ final class SaturnAuthorityTests: XCTestCase {
 
     func testMaterialFieldChangeProducesDifferentCanonicalForm() throws {
         let a = sampleFingerprint()
-        var b = sampleFingerprint()
-        // Simulate material change (different image digest)
-        b = AuthorityFingerprint(
+        let b = AuthorityFingerprint(
             actorID: a.actorID,
             actionID: a.actionID,
             resourceID: a.resourceID,
@@ -83,6 +81,104 @@ final class SaturnAuthorityTests: XCTestCase {
         let data = try CanonicalSerialization.encode(lease)
         let decoded = try CanonicalSerialization.decode(ComputeLease.self, from: data)
         XCTAssertEqual(lease, decoded)
+    }
+
+    func testStructuralVerifierAcceptsMatchingReceipt() throws {
+        let fp = sampleFingerprint()
+        let receipt = AuthorityReceipt(
+            receiptID: "rcpt-ok",
+            fingerprint: fp,
+            decisionOutcome: "allow",
+            obligations: [],
+            sealAlgorithm: "ed25519",
+            sealValue: "seal",
+            issuedAt: "2026-08-08T00:00:00Z",
+            expiry: "2099-01-01T00:00:00Z"
+        )
+        let verifier = StructuralAuthorityVerifier()
+        try verifier.verify(receipt: receipt, expected: fp, at: Date())
+    }
+
+    func testStructuralVerifierRejectsDenyReceipt() {
+        let fp = sampleFingerprint()
+        let receipt = AuthorityReceipt(
+            receiptID: "rcpt-deny",
+            fingerprint: fp,
+            decisionOutcome: "deny",
+            obligations: [],
+            sealAlgorithm: "ed25519",
+            sealValue: "seal",
+            issuedAt: "2026-08-08T00:00:00Z",
+            expiry: "2099-01-01T00:00:00Z"
+        )
+        let verifier = StructuralAuthorityVerifier()
+        XCTAssertThrowsError(
+            try verifier.verify(receipt: receipt, expected: fp, at: Date())
+        ) { error in
+            XCTAssertEqual(error as? AuthorityError, .scopeMismatch("deny receipt cannot authorize execution"))
+        }
+    }
+
+    func testStructuralVerifierRejectsFingerprintMismatch() {
+        let a = sampleFingerprint()
+        let b = AuthorityFingerprint(
+            actorID: a.actorID,
+            actionID: a.actionID,
+            resourceID: a.resourceID,
+            operationID: a.operationID,
+            deploymentID: a.deploymentID,
+            workloadID: a.workloadID,
+            imageDigest: "sha256:other",
+            runnerID: a.runnerID,
+            nodeID: a.nodeID,
+            modelID: a.modelID,
+            toolOrResourceID: a.toolOrResourceID,
+            dataClassification: a.dataClassification,
+            resourceLimits: a.resourceLimits,
+            computeLimits: a.computeLimits,
+            approvalReference: a.approvalReference,
+            policyVersion: a.policyVersion,
+            policyBundleDigest: a.policyBundleDigest,
+            issuedAt: a.issuedAt,
+            expiry: a.expiry,
+            nonce: a.nonce,
+            bindingAlgorithm: a.bindingAlgorithm,
+            keyID: a.keyID
+        )
+        let receipt = AuthorityReceipt(
+            receiptID: "rcpt-mismatch",
+            fingerprint: a,
+            decisionOutcome: "allow",
+            obligations: [],
+            sealAlgorithm: "ed25519",
+            sealValue: "seal",
+            issuedAt: "2026-08-08T00:00:00Z",
+            expiry: "2099-01-01T00:00:00Z"
+        )
+        let verifier = StructuralAuthorityVerifier()
+        XCTAssertThrowsError(
+            try verifier.verify(receipt: receipt, expected: b, at: Date())
+        )
+    }
+
+    func testIssuerProducesMatchingLease() throws {
+        let fp = sampleFingerprint()
+        let issuer = DefaultAuthorityIssuer()
+        let lease = try issuer.issueLease(
+            fingerprint: fp,
+            nodeID: fp.nodeID,
+            modelID: fp.modelID,
+            contextLimit: 8192,
+            outputLimit: 2048,
+            concurrencyLimit: 1,
+            budget: nil,
+            sealAlgorithm: "ed25519",
+            sealValue: "seal",
+            issuedAt: "2026-08-08T00:00:00Z",
+            expiry: "2026-08-08T00:30:00Z"
+        )
+        XCTAssertEqual(lease.fingerprint, fp)
+        XCTAssertEqual(lease.nodeID, fp.nodeID)
     }
 
     // MARK: - Fixture

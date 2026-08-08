@@ -1,5 +1,6 @@
 import Foundation
 
+/// Fail-closed authority errors. PEPs must never coerce or silently downgrade.
 public enum AuthorityError: Error, Equatable, Sendable {
     case invalidFingerprint(String)
     case expired
@@ -8,4 +9,6 @@ public enum AuthorityError: Error, Equatable, Sendable {
     case sealVerificationFailed
     case unsupportedVersion(String)
     case missingRequiredField(String)
+    case policyDowngrade(String)
+    case revoked
 }
