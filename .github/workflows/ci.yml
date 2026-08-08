@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: macos-15
+    runs-on: [self-hosted, macOS, ARM64, apple-ci, xcode-26-6]
     steps:
       - uses: actions/checkout@v4
 
@@ -23,7 +23,10 @@ jobs:
 
       - name: Install schema validation dependencies
         run: |
-          python3 -m venv .venv
+          set -euo pipefail
+          PYTHON=/opt/homebrew/bin/python3.12
+          echo "Using: $($PYTHON --version) ($PYTHON)"
+          $PYTHON -m venv .venv
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install --disable-pip-version-check \
             jsonschema==4.26.0 \
