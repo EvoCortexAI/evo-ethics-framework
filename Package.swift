@@ -7,6 +7,8 @@ let package = Package(
         .macOS(.v26)
     ],
     products: [
+        // Independent products. Consumers depend on each explicitly.
+        // EvoEthics does not import SaturnAuthority (and must not).
         .library(name: "EvoEthics", targets: ["EvoEthics"]),
         .library(name: "SaturnAuthority", targets: ["SaturnAuthority"]),
         .executable(name: "evo-ethicsctl", targets: ["evo-ethicsctl"])
@@ -17,7 +19,8 @@ let package = Package(
         ),
         .target(
             name: "EvoEthics",
-            dependencies: ["SaturnAuthority"],
+            // No SaturnAuthority dependency: evaluation contract is independent of
+            // authority fingerprint/receipt/lease (SUA §9 ownership split).
             resources: [.process("Resources")]
         ),
         .executableTarget(
@@ -26,7 +29,7 @@ let package = Package(
         ),
         .testTarget(
             name: "EvoEthicsTests",
-            dependencies: ["EvoEthics", "SaturnAuthority"]
+            dependencies: ["EvoEthics"]
         ),
         .testTarget(
             name: "SaturnAuthorityTests",
