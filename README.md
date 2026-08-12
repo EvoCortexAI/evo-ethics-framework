@@ -23,22 +23,70 @@ EvoEthics answers from structured metadata. It must not receive raw prompts, doc
 
 ```mermaid
 flowchart TD
-    Policy["Approved ETHICS-RULES.md"] --> Bundle["Signed policy bundle"]
-    Bundle --> Control["Saturn-Control policy authority"]
-    Control --> Runner["Container Runner enforcement"]
-    Runner --> Agent["Agent container"]
-    Agent --> Node["Saturn-Node inference enforcement"]
-    Control --> Audit["Decision receipt + audit"]
-    Runner --> Audit
-    Agent --> Audit
-    Node --> Audit
-    One["Saturn One approval UI"] --> Control
-    Container["Saturn Container operator UI"] --> Control
+    Policy[Approved ETHICS-RULES.md]
+    Bundle[Signed policy bundle]
+    PDP[EvoEthics deterministic PDP]
+    Control[Saturn-Control]
+    Approval[Exact human approval when required]
+    Authority[Saturn authority / receipt contract]
+    Runner[Container Runner PEP]
+    Agent[Managed Agent Container]
+    Node[Saturn-Node PEP]
+    Mesh[saturn-mlx-mesh / MLX]
+
+    Policy --> Bundle --> PDP
+    Control -->|structured metadata| PDP
+    PDP -->|allow / obligations / approval / review / deny| Control
+    Control --> Approval
+    Approval --> Control
+    Control -->|bound authorization evidence| Authority
+    Authority --> Runner
+    Authority --> Node
+    Runner --> Agent --> Node --> Mesh
 ```
 
-Saturn-Control runs and governs agent containers through its Container Runner. Saturn-Node supplies workload-authenticated MLX inference only. Frontends present intent and approval but cannot self-authorize.
+EvoEthics supplies deterministic governance decisions and obligations. It does **not** itself replace Saturn authentication, authorization, approval capture, workload identity, cryptographic authority binding, sandboxing, or final-side-effect enforcement.
 
-The preferred evaluator remains embedded at trusted enforcement points. An optional local API adapter supports components that cannot import the library. Evaluation is local-first, deterministic, fail-closed for unknown actions, and independent of a cloud model.
+## PAP / PDP / PEP separation
+
+```mermaid
+flowchart LR
+    PAP[Saturn-Control PAP]
+    PDP[EvoEthics PDP]
+    PEP1[Container Runner PEP]
+    PEP2[Agent protected-tool PEP]
+    PEP3[Saturn-Node PEP]
+
+    PAP -->|approved policy bundle| PDP
+    PDP -->|decision + obligations| PAP
+    PAP -->|exact bound authority| PEP1
+    PAP -->|exact bound authority| PEP2
+    PAP -->|lease / applicable bound authority| PEP3
+
+    PEP1 -->|verify immediately before side effect| SideEffect1[Apple Container mutation]
+    PEP2 -->|verify immediately before side effect| SideEffect2[Protected tool action]
+    PEP3 -->|verify immediately before side effect| SideEffect3[MLX generation]
+```
+
+Unknown, expired, mismatched, replayed, revoked, or policy-downgraded authority must fail closed at the final enforcement point.
+
+## Ownership boundary
+
+```mermaid
+flowchart TB
+    Ethics[EvoEthics]
+    Authority[SaturnAuthority contract]
+    Control[Saturn-Control]
+
+    Ethics -->|owns policy evaluation request / decision semantics| Decision[Decision + obligations + policy version/digest]
+    Authority -->|owns executable fingerprint / receipt / lease binding| Receipt[AuthorityReceipt / ComputeLease]
+    Control -->|consumes both| Operation[Protected operation]
+
+    Decision -. not execution authority by itself .-> Operation
+    Receipt -->|final PEP-verifiable authority| Operation
+```
+
+EvoEthics owns policy-evaluation semantics, policy version/digest, principle/control IDs, controls, and obligations. The canonical Saturn authority package owns the executable fingerprint, receipt envelope, compute-lease binding, cryptographic seal metadata, expiry/replay semantics, and verifier compatibility.
 
 ## Naming
 
@@ -48,8 +96,6 @@ The preferred evaluator remains embedded at trusted enforcement points. An optio
 - Apple distributable, if needed later: `EvoEthics.xcframework`
 - Optional local daemon: `evo-ethicsd`
 - API namespace: `ai.evocortex.ethics.v1`
-
-`Ethics.framework` is not the repository or subsystem name because `.framework` describes one Apple bundle and does not cover service or cross-language integrations.
 
 ## Decision contract
 
@@ -61,28 +107,25 @@ An evaluation produces:
 4. `require_review`
 5. `deny`
 
-A decision includes:
-
-- policy version and digest;
-- applicable ethical principle IDs;
-- executable control IDs;
-- required obligations;
-- stable audit identifier;
-- concise metadata-only explanation.
+A decision includes policy version/digest, applicable ethical principle IDs, executable control IDs, required obligations, a stable audit identifier, and a concise metadata-only explanation.
 
 Principles are normative. Controls are testable implementation rules derived from them.
 
 ## Saturn MVP integration
 
-The first integrated Saturn path is:
+```mermaid
+flowchart LR
+    One[Saturn One]
+    Container[Saturn Container]
+    Control[Saturn-Control]
+    Runner[Container Runner]
+    Agent[Apple Container Agent]
+    Node[Saturn-Node]
+    Mesh[saturn-mlx-mesh / MLX]
 
-```text
-Saturn One or Saturn Container
-    -> Saturn-Control
-    -> Container Runner
-    -> Apple Container agent
-    -> Saturn-Node
-    -> saturn-mlx-mesh / MLX
+    One --> Control
+    Container --> Control
+    Control --> Runner --> Agent --> Node --> Mesh
 ```
 
 Proposed first action IDs:
@@ -95,32 +138,9 @@ agent.restart
 inference.generate.local
 ```
 
-Proposed baseline obligations:
+Proposed baseline obligations include `local_execution`, `metadata_audit`, `content_logging_disabled`, `interruptible`, `bounded_resources`, `workload_identity`, and `digest_pinned_image`.
 
-- `local_execution`
-- `metadata_audit`
-- `content_logging_disabled`
-- `interruptible`
-- `bounded_resources`
-- `workload_identity`
-- `digest_pinned_image`
-
-Enforcement:
-
-- Saturn-Control evaluates before agent deployment, lifecycle mutation, compute assignment, and protected tool authorization.
-- The Container Runner verifies the operation, deployment specification, and runtime obligations immediately before Apple Container side effects.
-- Agent containers cannot lower their risk class, mint approvals, or reuse receipts for changed actions.
-- Saturn-Node verifies workload identity, compute scope, limits, expiry, and applicable receipt before inference.
-- Saturn One and Saturn Container present exact approval context but cannot convert a denial into permission.
-
-Production enforcement remains blocked until:
-
-- `ETHICS-RULES.md` is approved;
-- action and control catalogs are reviewed;
-- policy-bundle signing and downgrade resistance are defined;
-- request and receipt schemas pass security review;
-- rollback and evaluator failure behavior are tested;
-- each enforcement point passes conformance and bypass tests.
+Production enforcement remains blocked until the ethical source, action/control catalogs, signed policy-bundle and downgrade resistance, authority/receipt binding, security review, rollback behavior, and enforcement-point conformance are approved and proven.
 
 ## Repository contents
 
@@ -149,12 +169,12 @@ The reference evaluator demonstrates the contract and conformance behavior. It i
 ## Integration policy
 
 - Evaluate before a protected side effect.
-- Reject unknown, expired, mismatched, replayed, or unverifiable receipts.
-- Bind approval to the exact actor, action, resource, image, model, execution target, limits, and expiry.
+- Reject unknown, expired, mismatched, replayed, revoked, or unverifiable authority.
+- Bind approval to the exact actor, action, resource, image, model, execution target, limits, and expiry through the canonical Saturn authority contract.
 - Re-evaluate when any material fact changes.
 - Never treat evaluator failure as permission.
 - Keep raw prompts, files, credentials, and model output out of policy requests and ordinary audit events.
-- Do not use a frontend approval state as the authoritative receipt.
+- Do not use a frontend approval state as authoritative execution authority.
 - Do not treat an `allow` decision as authentication, authorization, sandboxing, or proof of a beneficial result.
 
 ## Current blockers
