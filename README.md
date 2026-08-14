@@ -177,11 +177,15 @@ The reference evaluator demonstrates the contract and conformance behavior. It i
 - Do not use a frontend approval state as authoritative execution authority.
 - Do not treat an `allow` decision as authentication, authorization, sandboxing, or proof of a beneficial result.
 
+## Current repository license
+
+The current private source repository is governed by the EvoCortexAI proprietary license in [`LICENSE`](LICENSE). That private-source license does not decide whether EvoEthics should later be released publicly or under an open-source license; any such release requires a separate explicit approval and release-readiness review.
+
 ## Current blockers
 
 1. Founder approval of `ETHICS-RULES.md` version `1.1-proposed`.
 2. Review of the agent-container and Saturn-Node action/control catalog.
-3. Approval of the public license.
+3. Approval of any future public/open-source license and release scope.
 4. Confirmation that this repository is the canonical source, or definition of an explicit generated-mirror rule.
 5. Security review of request, decision, policy-bundle, receipt, workload-identity, and audit schemas.
 6. Conformance tests for Saturn-Control, Container Runner, agent workload, and Saturn-Node enforcement.
