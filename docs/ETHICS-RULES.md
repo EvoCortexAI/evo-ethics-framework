@@ -1,9 +1,9 @@
 # EvoCortexAI Ethical Rules
 
-**Status:** Proposed canonical revision - pending founder approval.  
+**Status:** Approved canonical version.  
 **Applies to:** All products, infrastructure components, code, internal tooling, communications, partnerships, and decision-making processes.  
-**Version:** 1.1-proposed - July 2026  
-**Supersedes on approval:** Version 1.0 - July 2026
+**Version:** 1.1 - 2026-08-21  
+**Supersedes:** Version 1.0 - July 2026
 
 ---
 
@@ -11,7 +11,7 @@
 
 These rules establish the non-negotiable ethical boundaries for EvoCortexAI systems. They exist to ensure that artificial intelligence remains a **tool under meaningful human control**, never a system that exerts control over humans or erodes human agency.
 
-Upon approval, this document is the **sole canonical source** for EvoCortexAI ethical principle identifiers, titles, definitions, mandatory constraints, and the ethical decision framework.
+This document is the **sole canonical source** for EvoCortexAI ethical principle identifiers, titles, definitions, mandatory constraints, and the ethical decision framework.
 
 ---
 
@@ -175,11 +175,12 @@ A "no" to any question identifies an ethical conflict that must be resolved. A "
 
 | Version | Date | Status | Summary |
 |---|---|---|---|
-| 1.1-proposed | July 2026 | Pending approval | Establishes one-source governance, adds stable principle IDs, incorporates privacy-not-premium, transparency-over-magic, and capability-scales-with-responsibility language, and proposes E9 Human Flourishing and E10 No Monopoly on Intelligence. |
-| 1.0 | July 2026 | Previous approved version | Initial eight-principle ethical framework. |
+| 1.1 | 2026-08-21 | Approved | Founder approval of the 1.1 revision. Establishes one-source governance, stable principle IDs E1–E10, privacy-not-premium, transparency-over-magic, capability-scales-with-responsibility, E9 Human Flourishing, and E10 No Monopoly on Intelligence. |
+| 1.1-proposed | July 2026 | Superseded | Proposed revision pending founder approval. |
+| 1.0 | July 2026 | Superseded | Initial eight-principle ethical framework. |
 
 ---
 
 **These rules are not aspirational. They are operational constraints that define what EvoCortexAI will and will not build.**
 
-*Proposed as the sole canonical ethical reference for the EvoCortexAI ecosystem upon approval.*
+*Approved as the sole canonical ethical reference for the EvoCortexAI ecosystem.*
