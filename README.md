@@ -4,6 +4,8 @@
 **Ethics source:** `docs/ETHICS-RULES.md` version **1.1** (approved 2026-08-21).  
 A proposed 1.2 amendment (E11 Human Privacy) is under review and is **not** authoritative until approved and merged.
 
+> **Public source status:** This repository may be publicly inspected under the proprietary [`LICENSE`](LICENSE). Public visibility does **not** make it open source. External contributions are currently **closed**; see [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and [`LICENSING.md`](LICENSING.md).
+
 EvoEthics is the proposed deterministic ethics-policy subsystem of EvoIntelligenceFabric. It converts approved EvoCortexAI ethical constraints into inspectable decisions and obligations that Saturn components can enforce.
 
 It is not a separate AI product, a moral-scoring model, or a mandatory remote cloud service.
@@ -149,7 +151,8 @@ Production enforcement remains blocked until the ethical source, action/control 
 - `docs/ARCHITECTURE.md` — policy architecture and trust boundaries
 - `docs/INTEGRATION-MAP.md` — Saturn component enforcement points
 - `docs/THREAT-MODEL.md` — threats and mitigations
-- `docs/PUBLIC-RELEASE-CHECKLIST.md` — gates before public visibility
+- `docs/PUBLIC-RELEASE-CHECKLIST.md` — Phase A/Phase B enrollment gates
+- `.github/CONTRIBUTING.md` — current contribution status
 - `spec/v1/` — JSON Schemas and OpenAPI contract
 - `policy/` — development policy bundle and control catalog
 - `Sources/EvoEthics/` — dependency-free Swift reference SDK
@@ -158,13 +161,15 @@ Production enforcement remains blocked until the ethical source, action/control 
 
 ## Development quick start
 
-Requirements: Swift 6.3 / Xcode 26 / macOS 26 on the organization self-hosted runner (`saturn-ci-apple-01` labels: `self-hosted`, `macOS`, `ARM64`, `apple-ci`, `xcode-26-6`). Python 3.11+.
+Requirements: Swift 6.3 / Xcode 26 / macOS 26 and Python 3.11+.
 
 ```sh
 swift test
 python3 scripts/validate_specs.py
 swift run evo-ethicsctl evaluate examples/container-delete.request.json
 ```
+
+Trusted CI runs on organization-managed Apple infrastructure. Public/untrusted pull requests are intentionally not dispatched to private self-hosted runners while external contributions are closed.
 
 The reference evaluator demonstrates the contract and conformance behavior. It is not approved for production enforcement.
 
@@ -181,17 +186,20 @@ The reference evaluator demonstrates the contract and conformance behavior. It i
 
 ## Current repository license
 
-The current private source repository is governed by the EvoCortexAI proprietary license in [`LICENSE`](LICENSE). That private-source license does not decide whether EvoEthics should later be released publicly or under an open-source license; any such release requires a separate explicit approval and release-readiness review. See `LICENSING.md` and `docs/PUBLIC-RELEASE-CHECKLIST.md`.
+EvoCortexAI-owned material in this repository is currently governed by the proprietary [`LICENSE`](LICENSE), regardless of repository visibility. Public visibility is for transparency, inspection, and evaluation and does not make the repository open source or invite external contributions.
 
-## Residual blockers for public enrollment
+A future Apache-2.0 / CC-BY-4.0 model is documented in [`LICENSING.md`](LICENSING.md), including explicit treatment of JSON Schema, OpenAPI, conformance vectors, policy bundles, normative prose, and trademarks. That future model is not active until separately approved and committed.
 
-1. Founder + legal approval of the public licensing model (`LICENSING.md`).
-2. Completion of the gates in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
-3. Decision on any open normative amendments (currently E11 / 1.2-proposed) before or concurrent with publication so public surfaces do not mix approved and proposed text.
-4. Security review of request, decision, policy-bundle, receipt, workload-identity, and audit schemas.
-5. Conformance coverage for the first Saturn enforcement points.
+## Residual blockers for open-source/contribution enrollment
 
-Until these are closed, the repository remains private and the status remains "In development; not production-ready".
+1. Founder + legal approval of the final outbound licensing model.
+2. Final license texts, SPDX/file-level boundary, and third-party notices.
+3. Inbound contribution terms (DCO/CLA decision).
+4. Public-safe CI for untrusted external contributions.
+5. Contributor governance and review rules.
+6. Completion of the Phase B gates in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
+
+Until those are closed, external contributions remain disabled by policy and the project remains `In development; not production-ready`.
 
 ## Non-goals
 
