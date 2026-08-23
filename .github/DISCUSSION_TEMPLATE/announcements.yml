@@ -1,0 +1,43 @@
+title: "[Announcement] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Official EvoCortexAI announcement
+
+        This category is reserved for maintainer-authored announcements about EvoEthics governance, releases, public-source status, and canonical policy decisions.
+
+        Announcements are informative unless they explicitly reference an approved canonical artifact. A discussion post does not by itself amend `docs/ETHICS-RULES.md`, change licensing, or authorize production enforcement.
+
+  - type: textarea
+    id: announcement
+    attributes:
+      label: Announcement
+      description: State the decision, release, status change, or public update clearly and concisely.
+      placeholder: "Describe what changed, why it matters, and what readers should treat as authoritative."
+    validations:
+      required: true
+
+  - type: input
+    id: authority
+    attributes:
+      label: Authority / status
+      description: Identify the governance status of this announcement.
+      placeholder: "Informational / Proposed / Founder-approved / Released"
+    validations:
+      required: true
+
+  - type: input
+    id: canonical_reference
+    attributes:
+      label: Canonical reference
+      description: Link to the governing commit, pull request, release, or approved document when applicable.
+      placeholder: "https://github.com/EvoCortexAI/evo-ethics-framework/..."
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        **Canonical-source rule:** where an announcement conflicts with an approved version of `docs/ETHICS-RULES.md`, the approved canonical document governs.
