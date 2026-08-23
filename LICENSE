@@ -1,17 +1,19 @@
-EvoCortexAI Proprietary License
+EvoCortexAI Proprietary Source License
 
 Copyright (c) 2026 EvoCortexAI S.L.
 All rights reserved.
 
-PROPRIETARY AND CONFIDENTIAL
+This repository and all EvoCortexAI-owned contents in it, including source code, documentation, designs, schemas, protocols, policy bundles, conformance materials, build scripts, tests, assets, and related materials (collectively, the "Materials"), are the exclusive property of EvoCortexAI S.L. unless expressly stated otherwise.
 
-This repository and all EvoCortexAI-owned contents in it, including source code, documentation, designs, schemas, protocols, build scripts, tests, assets, and related materials (collectively, the "Materials"), are the exclusive property of EvoCortexAI S.L. unless expressly stated otherwise.
+Public visibility of this repository is provided for transparency, inspection, and evaluation. Public access does not make the Materials open source and does not, by itself, grant permission to use, modify, merge, publish, distribute, sublicense, deploy, commercialize, or otherwise exploit the Materials.
 
-No license or other rights to the Materials are granted by access to this repository. Without prior written permission from EvoCortexAI S.L., you may not use, copy, modify, merge, publish, distribute, sublicense, disclose, transmit, reverse engineer, or otherwise exploit the Materials, in whole or in part.
+No license or other rights to the Materials are granted except (a) rights expressly required for access through the hosting platform under its applicable terms, (b) rights expressly stated in a file-specific notice, or (c) rights granted in a separate written agreement with EvoCortexAI S.L.
 
-Access is limited to personnel, contractors, partners, and other parties authorized by EvoCortexAI S.L. and remains subject to any applicable written agreement, confidentiality obligation, and company policy.
+External contributions are not accepted unless and until EvoCortexAI publishes an explicit contribution policy and inbound licensing terms. Submission of unsolicited code, policy text, specifications, or other material does not create an obligation to review, accept, merge, or license that material.
 
 Third-party software and other third-party materials included or referenced by this repository remain subject to their respective license terms. This license applies only to Materials owned by EvoCortexAI S.L.
+
+No rights are granted to the EvoCortexAI name, Saturn names, logos, product names, service marks, or other trademarks. Public access, citation, or creation of an independent derivative work does not imply endorsement, approval, certification, or canonical status by EvoCortexAI S.L.
 
 THE MATERIALS ARE PROVIDED "AS IS" TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. EvoCortexAI S.L. DISCLAIMS ALL IMPLIED WARRANTIES, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT, EXCEPT TO THE EXTENT A SEPARATE WRITTEN AGREEMENT EXPRESSLY PROVIDES OTHERWISE.
 
