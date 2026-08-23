@@ -1,7 +1,8 @@
 # EvoEthics Framework
 
 **Status:** In development; not production-ready  
-**Ethics source:** `docs/ETHICS-RULES.md` version `1.1-proposed`, pending founder approval
+**Ethics source:** `docs/ETHICS-RULES.md` version **1.1** (approved 2026-08-21).  
+A proposed 1.2 amendment (E11 Human Privacy) is under review and is **not** authoritative until approved and merged.
 
 EvoEthics is the proposed deterministic ethics-policy subsystem of EvoIntelligenceFabric. It converts approved EvoCortexAI ethical constraints into inspectable decisions and obligations that Saturn components can enforce.
 
@@ -144,15 +145,16 @@ Production enforcement remains blocked until the ethical source, action/control 
 
 ## Repository contents
 
-- `docs/ETHICS-RULES.md` - proposed canonical ethical source
-- `docs/ARCHITECTURE.md` - policy architecture and trust boundaries
-- `docs/INTEGRATION-MAP.md` - Saturn component enforcement points
-- `docs/THREAT-MODEL.md` - threats and mitigations
-- `spec/v1/` - JSON Schemas and OpenAPI contract
-- `policy/` - development policy bundle and control catalog
-- `Sources/EvoEthics/` - dependency-free Swift reference SDK
-- `Sources/evo-ethicsctl/` - local evaluation CLI
-- `conformance/` - engine-neutral test vectors
+- `docs/ETHICS-RULES.md` — canonical ethical source (approved version on `main`)
+- `docs/ARCHITECTURE.md` — policy architecture and trust boundaries
+- `docs/INTEGRATION-MAP.md` — Saturn component enforcement points
+- `docs/THREAT-MODEL.md` — threats and mitigations
+- `docs/PUBLIC-RELEASE-CHECKLIST.md` — gates before public visibility
+- `spec/v1/` — JSON Schemas and OpenAPI contract
+- `policy/` — development policy bundle and control catalog
+- `Sources/EvoEthics/` — dependency-free Swift reference SDK
+- `Sources/evo-ethicsctl/` — local evaluation CLI
+- `conformance/` — engine-neutral test vectors
 
 ## Development quick start
 
@@ -179,17 +181,17 @@ The reference evaluator demonstrates the contract and conformance behavior. It i
 
 ## Current repository license
 
-The current private source repository is governed by the EvoCortexAI proprietary license in [`LICENSE`](LICENSE). That private-source license does not decide whether EvoEthics should later be released publicly or under an open-source license; any such release requires a separate explicit approval and release-readiness review.
+The current private source repository is governed by the EvoCortexAI proprietary license in [`LICENSE`](LICENSE). That private-source license does not decide whether EvoEthics should later be released publicly or under an open-source license; any such release requires a separate explicit approval and release-readiness review. See `LICENSING.md` and `docs/PUBLIC-RELEASE-CHECKLIST.md`.
 
-## Current blockers
+## Residual blockers for public enrollment
 
-1. Founder approval of `ETHICS-RULES.md` version `1.1-proposed`.
-2. Review of the agent-container and Saturn-Node action/control catalog.
-3. Approval of any future public/open-source license and release scope.
-4. Confirmation that this repository is the canonical source, or definition of an explicit generated-mirror rule.
-5. Security review of request, decision, policy-bundle, receipt, workload-identity, and audit schemas.
-6. Conformance tests for Saturn-Control, Container Runner, agent workload, and Saturn-Node enforcement.
-7. Confirmation of repository visibility and public-release readiness.
+1. Founder + legal approval of the public licensing model (`LICENSING.md`).
+2. Completion of the gates in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
+3. Decision on any open normative amendments (currently E11 / 1.2-proposed) before or concurrent with publication so public surfaces do not mix approved and proposed text.
+4. Security review of request, decision, policy-bundle, receipt, workload-identity, and audit schemas.
+5. Conformance coverage for the first Saturn enforcement points.
+
+Until these are closed, the repository remains private and the status remains "In development; not production-ready".
 
 ## Non-goals
 

@@ -18,15 +18,15 @@ Recommended topics:
 - responsible-ai
 - apple-silicon
 
+**Prerequisite:** Complete every gate in `docs/PUBLIC-RELEASE-CHECKLIST.md` and obtain founder + legal approval. Do not flip visibility until that checklist is closed.
+
 After the license and canonical-source decisions are approved and GitHub CLI is authenticated:
 
 ```sh
-gh repo create EvoCortexAI/evo-ethics-framework \
-  --public \
-  --source=. \
-  --remote=origin \
-  --push
+gh repo edit EvoCortexAI/evo-ethics-framework --visibility public
 ```
+
+(or the equivalent create/push flow if the repository is being re-created).
 
 Then enable:
 
