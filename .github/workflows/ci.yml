@@ -20,31 +20,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Swift package
+      - name: Validate Swift package, repository artifacts, and conformance
         run: swift test
 
-      - name: Install schema validation dependencies
+      - name: Smoke public CLI examples
         run: |
           set -euo pipefail
-          PYTHON=/opt/homebrew/bin/python3.12
-          echo "Using: $($PYTHON --version) ($PYTHON)"
-          $PYTHON -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install --disable-pip-version-check \
-            jsonschema==4.26.0 \
-            PyYAML==6.0.3
-
-      - name: Validate schemas, policies, examples, and vectors
-        run: .venv/bin/python scripts/validate_specs.py
-
-      - name: Run cross-implementation conformance vectors
-        run: |
-          BIN_PATH="$(swift build --show-bin-path)/evo-ethicsctl"
-          .venv/bin/python scripts/run_conformance.py "$BIN_PATH"
-
-      - name: Evaluate public examples
-        run: |
           for request in examples/*.request.json; do
-            swift run evo-ethicsctl evaluate "$request" > /tmp/decision.json
-            .venv/bin/python -m json.tool /tmp/decision.json >/dev/null
+            output="$(mktemp)"
+            swift run evo-ethicsctl evaluate "$request" > "$output"
+            test -s "$output"
+            grep -q '"decision"' "$output"
+            grep -q '"request_id"' "$output"
+            rm -f "$output"
           done
