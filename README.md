@@ -156,18 +156,22 @@ Production enforcement remains blocked until the ethical source, action/control 
 - `spec/v1/` — JSON Schemas and OpenAPI contract
 - `policy/` — development policy bundle and control catalog
 - `Sources/EvoEthics/` — dependency-free Swift reference SDK
-- `Sources/evo-ethicsctl/` — local evaluation CLI
+- `Sources/evo-ethicsctl/` — stable local evaluation CLI
+- `Sources/EvoEthicsValidation/` — dependency-free repository validation and in-process conformance tooling
+- `policy/control-catalog.json` — machine-readable executable-control catalog
 - `conformance/` — engine-neutral test vectors
 
 ## Development quick start
 
-Requirements: Swift 6.3 / Xcode 26 / macOS 26 and Python 3.11+.
+Requirements: Swift 6.3 / Xcode 26 / macOS 26.
 
 ```sh
 swift test
-python3 scripts/validate_specs.py
+swift run evo-ethics-validate
 swift run evo-ethicsctl evaluate examples/container-delete.request.json
 ```
+
+`evo-ethics-validate` is repository tooling. It validates the JSON Schemas, policy bundle, control catalog, examples, OpenAPI allow-list, ethical-principle headings, and all conformance vectors in process. The public `evo-ethicsctl` interface is unchanged.
 
 Trusted CI runs on organization-managed Apple infrastructure. Public/untrusted pull requests are intentionally not dispatched to private self-hosted runners while external contributions are closed.
 
