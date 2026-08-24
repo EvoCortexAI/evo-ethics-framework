@@ -74,31 +74,40 @@ public struct JSONSchemaSubsetValidator: Sendable {
         "$schema", "$id", "$defs", "$ref", "title", "description", "type",
         "additionalProperties", "required", "properties", "const", "enum",
         "minLength", "maxLength", "pattern", "format", "minItems", "maxItems",
-        "uniqueItems", "items",
+        "uniqueItems", "items", "minimum", "maximum",
     ]
     private static let allowedTypes: Set<String> = [
         "object", "array", "string", "number", "integer", "boolean", "null",
     ]
 
     private let schema: JSONValue
+    private let externalSchemas: [String: JSONValue]
 
-    public init(schema: JSONValue) throws {
+    public init(
+        schema: JSONValue,
+        externalSchemas: [String: JSONValue] = [:]
+    ) throws {
         guard case .object = schema else {
             throw ValidationFailure("schema: expected object")
         }
         self.schema = schema
+        self.externalSchemas = externalSchemas
     }
 
     public func validateSchemaDefinition() throws {
-        try validateSchemaNode(schema, path: "schema")
+        try validateSchemaNode(schema, path: "schema", documentRoot: schema)
     }
 
     public func validate(_ instance: JSONValue, label: String = "instance") throws {
         try validateSchemaDefinition()
-        try validate(instance, against: schema, path: label)
+        try validate(instance, against: schema, documentRoot: schema, path: label)
     }
 
-    private func validateSchemaNode(_ node: JSONValue, path: String) throws {
+    private func validateSchemaNode(
+        _ node: JSONValue,
+        path: String,
+        documentRoot: JSONValue
+    ) throws {
         let object = try node.object(at: path)
         if let unsupported = object.keys.sorted().first(where: {
             !Self.allowedKeywords.contains($0)
@@ -119,10 +128,21 @@ public struct JSONSchemaSubsetValidator: Sendable {
             }
         }
 
-        if let additional = object["additionalProperties"], case .bool = additional {
-            // Supported.
-        } else if object["additionalProperties"] != nil {
-            throw ValidationFailure("\(path).additionalProperties: expected boolean")
+        if let additional = object["additionalProperties"] {
+            switch additional {
+            case .bool:
+                break
+            case .object:
+                try validateSchemaNode(
+                    additional,
+                    path: "\(path).additionalProperties",
+                    documentRoot: documentRoot
+                )
+            default:
+                throw ValidationFailure(
+                    "\(path).additionalProperties: expected boolean or schema"
+                )
+            }
         }
 
         if let required = object["required"] {
@@ -138,14 +158,15 @@ public struct JSONSchemaSubsetValidator: Sendable {
             for key in children.keys.sorted() {
                 try validateSchemaNode(
                     children[key]!,
-                    path: "\(path).\(keyword).\(key)"
+                    path: "\(path).\(keyword).\(key)",
+                    documentRoot: documentRoot
                 )
             }
         }
 
         if let reference = object["$ref"] {
             let pointer = try reference.string(at: "\(path).$ref")
-            _ = try resolve(pointer: pointer)
+            _ = try resolve(pointer: pointer, relativeTo: documentRoot)
         }
 
         if let enumeration = object["enum"] {
@@ -164,6 +185,11 @@ public struct JSONSchemaSubsetValidator: Sendable {
             maximumKey: "maxLength",
             path: path
         )
+        let minimum = try numberKeyword(object["minimum"], path: "\(path).minimum")
+        let maximum = try numberKeyword(object["maximum"], path: "\(path).maximum")
+        if let minimum, let maximum, minimum > maximum {
+            throw ValidationFailure("\(path): minimum exceeds maximum")
+        }
         try validateNonnegativeIntegerPair(
             object: object,
             minimumKey: "minItems",
@@ -194,20 +220,31 @@ public struct JSONSchemaSubsetValidator: Sendable {
         }
 
         if let items = object["items"] {
-            try validateSchemaNode(items, path: "\(path).items")
+            try validateSchemaNode(
+                items,
+                path: "\(path).items",
+                documentRoot: documentRoot
+            )
         }
     }
 
     private func validate(
         _ instance: JSONValue,
         against schemaNode: JSONValue,
+        documentRoot: JSONValue,
         path: String
     ) throws {
         let object = try schemaNode.object(at: path)
 
         if let reference = object["$ref"] {
             let pointer = try reference.string(at: "\(path).$ref")
-            try validate(instance, against: resolve(pointer: pointer), path: path)
+            let resolved = try resolve(pointer: pointer, relativeTo: documentRoot)
+            try validate(
+                instance,
+                against: resolved.node,
+                documentRoot: resolved.documentRoot,
+                path: path
+            )
         }
 
         if let type = object["type"] {
@@ -271,8 +308,26 @@ public struct JSONSchemaSubsetValidator: Sendable {
             }
             if let items = object["items"] {
                 for (index, value) in values.enumerated() {
-                    try validate(value, against: items, path: "\(path)[\(index)]")
+                    try validate(
+                        value,
+                        against: items,
+                        documentRoot: documentRoot,
+                        path: "\(path)[\(index)]"
+                    )
                 }
+            }
+        }
+
+        if case let .number(value) = instance {
+            if let minimum = try numberKeyword(object["minimum"], path: "\(path).minimum"),
+               value < minimum
+            {
+                throw ValidationFailure("\(path): number is less than \(minimum)")
+            }
+            if let maximum = try numberKeyword(object["maximum"], path: "\(path).maximum"),
+               value > maximum
+            {
+                throw ValidationFailure("\(path): number is greater than \(maximum)")
             }
         }
 
@@ -291,11 +346,25 @@ public struct JSONSchemaSubsetValidator: Sendable {
                 throw ValidationFailure("\(path): additional property '\(extra)' is not allowed")
             }
 
+            if let additionalSchema = object["additionalProperties"],
+               case .object = additionalSchema
+            {
+                for property in values.keys.sorted() where properties[property] == nil {
+                    try validate(
+                        values[property]!,
+                        against: additionalSchema,
+                        documentRoot: documentRoot,
+                        path: "\(path).\(property)"
+                    )
+                }
+            }
+
             for property in properties.keys.sorted() {
                 if let value = values[property] {
                     try validate(
                         value,
                         against: properties[property]!,
+                        documentRoot: documentRoot,
                         path: "\(path).\(property)"
                     )
                 }
@@ -303,11 +372,19 @@ public struct JSONSchemaSubsetValidator: Sendable {
         }
     }
 
-    private func resolve(pointer: String) throws -> JSONValue {
-        guard pointer.hasPrefix("#/") else {
-            throw ValidationFailure("schema.$ref: only local JSON pointers are supported")
+    private func resolve(
+        pointer: String,
+        relativeTo documentRoot: JSONValue
+    ) throws -> (node: JSONValue, documentRoot: JSONValue) {
+        if !pointer.hasPrefix("#/") {
+            guard !pointer.contains("/"), !pointer.contains("#"),
+                  let external = externalSchemas[pointer]
+            else {
+                throw ValidationFailure("schema.$ref: unresolved schema '\(pointer)'")
+            }
+            return (external, external)
         }
-        var current = schema
+        var current = documentRoot
         for rawComponent in pointer.dropFirst(2).split(separator: "/", omittingEmptySubsequences: false) {
             let component = rawComponent
                 .replacingOccurrences(of: "~1", with: "/")
@@ -318,7 +395,7 @@ public struct JSONSchemaSubsetValidator: Sendable {
             }
             current = next
         }
-        return current
+        return (current, documentRoot)
     }
 
     private func schemaTypes(_ value: JSONValue, path: String) throws -> [String] {
@@ -370,6 +447,14 @@ public struct JSONSchemaSubsetValidator: Sendable {
             throw ValidationFailure("\(path): expected integer")
         }
         return Int(number)
+    }
+
+    private func numberKeyword(_ value: JSONValue?, path: String) throws -> Double? {
+        guard let value else { return nil }
+        guard case let .number(number) = value, number.isFinite else {
+            throw ValidationFailure("\(path): expected finite number")
+        }
+        return number
     }
 
     private func matches(_ value: JSONValue, type: String) -> Bool {
@@ -439,9 +524,17 @@ public struct RepositoryValidator: Sendable {
     public func validate() throws -> RepositoryValidationReport {
         let spec = root.appendingPathComponent("spec/v1", isDirectory: true)
         let schemaFiles = try files(in: spec, suffix: ".schema.json")
+        let schemaDocuments = try Dictionary(
+            uniqueKeysWithValues: schemaFiles.map { file in
+                (file.lastPathComponent, try JSONValue.decode(contentsOf: file))
+            }
+        )
         var validators: [String: JSONSchemaSubsetValidator] = [:]
         for file in schemaFiles {
-            let validator = try JSONSchemaSubsetValidator(schema: JSONValue.decode(contentsOf: file))
+            let validator = try JSONSchemaSubsetValidator(
+                schema: schemaDocuments[file.lastPathComponent]!,
+                externalSchemas: schemaDocuments
+            )
             try validator.validateSchemaDefinition()
             validators[file.lastPathComponent] = validator
         }
