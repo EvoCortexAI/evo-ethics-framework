@@ -81,6 +81,33 @@ struct JSONSchemaSubsetValidatorTests {
             try validator.validateSchemaDefinition()
         }
     }
+
+    @Test("External refs, numeric bounds, and schema-valued additional properties are enforced")
+    func validatesRepositorySchemaVocabulary() throws {
+        let fingerprint = try JSONValue.decode(
+            #"{"type":"object","properties":{"count":{"type":"integer","minimum":1}},"additionalProperties":{"type":"string"}}"#
+        )
+        let validator = try JSONSchemaSubsetValidator(
+            schema: JSONValue.decode(
+                #"{"type":"object","required":["fingerprint"],"properties":{"fingerprint":{"$ref":"fingerprint.schema.json"}}}"#
+            ),
+            externalSchemas: ["fingerprint.schema.json": fingerprint]
+        )
+
+        try validator.validate(
+            JSONValue.decode(#"{"fingerprint":{"count":1,"scope":"local"}}"#)
+        )
+        #expect(throws: ValidationFailure.self) {
+            try validator.validate(
+                JSONValue.decode(#"{"fingerprint":{"count":0,"scope":"local"}}"#)
+            )
+        }
+        #expect(throws: ValidationFailure.self) {
+            try validator.validate(
+                JSONValue.decode(#"{"fingerprint":{"count":1,"scope":false}}"#)
+            )
+        }
+    }
 }
 
 @Suite("Repository validation")
@@ -89,7 +116,7 @@ struct RepositoryValidationTests {
     func validatesRepository() throws {
         let report = try RepositoryValidator(root: repositoryRoot()).validate()
 
-        #expect(report.schemaCount == 6)
+        #expect(report.schemaCount == 9)
         #expect(report.actionCount == 10)
         #expect(report.controlCount == 18)
         #expect(report.requestExampleCount == 4)
