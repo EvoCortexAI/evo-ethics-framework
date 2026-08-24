@@ -27,6 +27,11 @@ let package = Package(
             name: "evo-ethicsctl",
             dependencies: ["EvoEthics"]
         ),
+        // Repository-only validation tooling. No shipping library product depends on it.
+        .target(
+            name: "EvoEthicsValidation",
+            dependencies: ["EvoEthics"]
+        ),
         .testTarget(
             name: "EvoEthicsTests",
             dependencies: ["EvoEthics"]
@@ -34,6 +39,10 @@ let package = Package(
         .testTarget(
             name: "SaturnAuthorityTests",
             dependencies: ["SaturnAuthority"]
+        ),
+        .testTarget(
+            name: "EvoEthicsValidationTests",
+            dependencies: ["EvoEthicsValidation"]
         )
     ]
 )
