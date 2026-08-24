@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,23 +16,24 @@ concurrency:
 
 jobs:
   validate:
-    # Intentionally trusted-only while external contributions are closed.
-    # Public pull requests must never execute on EvoCortexAI self-hosted runners.
+    # Same-repository branches are trusted while external contributions are closed.
+    # Fork pull requests must never execute on EvoCortexAI self-hosted runners.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, macOS, ARM64, apple-ci, xcode-26-6]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate Swift package, repository artifacts, and conformance
+      - name: Validate Swift package
         run: swift test
 
-      - name: Smoke public CLI examples
+      - name: Validate schemas, policies, examples, vectors, and conformance
+        run: swift run evo-ethics-validate
+
+      - name: Evaluate public examples through the stable CLI
         run: |
           set -euo pipefail
+          output="${RUNNER_TEMP}/evo-ethics-decision.json"
           for request in examples/*.request.json; do
-            output="$(mktemp)"
             swift run evo-ethicsctl evaluate "$request" > "$output"
             test -s "$output"
-            grep -q '"decision"' "$output"
-            grep -q '"request_id"' "$output"
-            rm -f "$output"
           done

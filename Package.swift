@@ -11,7 +11,8 @@ let package = Package(
         // EvoEthics does not import SaturnAuthority (and must not).
         .library(name: "EvoEthics", targets: ["EvoEthics"]),
         .library(name: "SaturnAuthority", targets: ["SaturnAuthority"]),
-        .executable(name: "evo-ethicsctl", targets: ["evo-ethicsctl"])
+        .executable(name: "evo-ethicsctl", targets: ["evo-ethicsctl"]),
+        .executable(name: "evo-ethics-validate", targets: ["evo-ethics-validate"])
     ],
     targets: [
         .target(
@@ -27,6 +28,15 @@ let package = Package(
             name: "evo-ethicsctl",
             dependencies: ["EvoEthics"]
         ),
+        // Repository-only validation tooling. No shipping library product depends on it.
+        .target(
+            name: "EvoEthicsValidation",
+            dependencies: ["EvoEthics"]
+        ),
+        .executableTarget(
+            name: "evo-ethics-validate",
+            dependencies: ["EvoEthicsValidation"]
+        ),
         .testTarget(
             name: "EvoEthicsTests",
             dependencies: ["EvoEthics"]
@@ -34,6 +44,10 @@ let package = Package(
         .testTarget(
             name: "SaturnAuthorityTests",
             dependencies: ["SaturnAuthority"]
+        ),
+        .testTarget(
+            name: "EvoEthicsValidationTests",
+            dependencies: ["EvoEthicsValidation"]
         )
     ]
 )
