@@ -5,6 +5,7 @@ import Testing
 @Suite("Constrained JSON Schema validation")
 struct JSONSchemaSubsetValidatorTests {
     private let schema = #"""
+    {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
       "additionalProperties": false,
@@ -23,7 +24,8 @@ struct JSONSchemaSubsetValidatorTests {
       "$defs": {
         "assurance": { "type": ["string", "null"], "maxLength": 16 }
       }
-    }"""#
+    }
+    """#
 
     @Test("Supported schema vocabulary validates a conforming value")
     func acceptsConformingValue() throws {
