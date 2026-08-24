@@ -3,7 +3,7 @@ import XCTest
 @testable import EvoEthics
 
 final class RepositoryValidationTests: XCTestCase {
-    private var repositoryRoot: URL {
+    private var root: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -11,250 +11,150 @@ final class RepositoryValidationTests: XCTestCase {
     }
 
     func testRepositoryArtifactsValidate() throws {
-        let root = repositoryRoot
-        let specDirectory = root.appendingPathComponent("spec/v1", isDirectory: true)
-        let schemaURLs = try FileManager.default
-            .contentsOfDirectory(at: specDirectory, includingPropertiesForKeys: nil)
-            .filter { $0.lastPathComponent.hasSuffix(".schema.json") }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-
-        XCTAssertFalse(schemaURLs.isEmpty, "No JSON Schema documents found in spec/v1")
-
+        let spec = root.appendingPathComponent("spec/v1", isDirectory: true)
         let validator = RestrictedJSONSchemaValidator()
+        let schemaURLs = try directoryFiles(spec) { $0.lastPathComponent.hasSuffix(".schema.json") }
+        XCTAssertFalse(schemaURLs.isEmpty)
+
         var schemas = [String: [String: Any]]()
         for url in schemaURLs {
             let schema = try loadJSONObject(url)
-            try validator.checkSchema(schema, label: relativePath(url, root: root))
+            try validator.checkSchema(schema, label: relative(url))
             schemas[url.lastPathComponent] = schema
         }
 
-        let requestSchema = try requiredSchema("evaluation-request.schema.json", from: schemas)
-        let decisionSchema = try requiredSchema("evaluation-decision.schema.json", from: schemas)
-        let policySchema = try requiredSchema("policy-bundle.schema.json", from: schemas)
-        let vectorSchema = try requiredSchema("conformance-vector.schema.json", from: schemas)
-        let catalogSchema = try requiredSchema("control-catalog.schema.json", from: schemas)
+        let requestSchema = try schema("evaluation-request.schema.json", in: schemas)
+        let decisionSchema = try schema("evaluation-decision.schema.json", in: schemas)
+        let policySchema = try schema("policy-bundle.schema.json", in: schemas)
+        let vectorSchema = try schema("conformance-vector.schema.json", in: schemas)
+        let catalogSchema = try schema("control-catalog.schema.json", in: schemas)
 
         let policyURL = root.appendingPathComponent("policy/development-policy.json")
         let policy = try loadJSONObject(policyURL)
-        try validator.validate(
-            policy,
-            against: policySchema,
-            label: relativePath(policyURL, root: root)
-        )
+        try validator.validate(policy, against: policySchema, label: relative(policyURL))
+        let actions = try objects(policy["actions"], label: "policy actions")
+        try assertUnique(try actions.map { try string($0["id"], label: "action id") }, label: "action IDs")
 
-        let actions = try objectArray(policy["actions"], label: "policy actions")
-        let actionIDs = try actions.map { action in
-            try requiredString(action["id"], label: "policy action id")
-        }
-        try assertUnique(actionIDs, label: "action IDs")
-
-        let bundledPolicyURL = root.appendingPathComponent(
-            "Sources/EvoEthics/Resources/development-policy.json"
-        )
-        let bundledPolicy = try loadJSONObject(bundledPolicyURL)
+        let bundledPolicyURL = root.appendingPathComponent("Sources/EvoEthics/Resources/development-policy.json")
         XCTAssertEqual(
             try canonicalJSON(policy),
-            try canonicalJSON(bundledPolicy),
+            try canonicalJSON(loadJSONObject(bundledPolicyURL)),
             "The SDK development policy and policy/development-policy.json differ"
         )
 
         let catalogURL = root.appendingPathComponent("policy/control-catalog.yaml")
-        let catalog = try RestrictedCatalogYAML.parse(
-            String(contentsOf: catalogURL, encoding: .utf8)
-        )
-        try validator.validate(
-            catalog,
-            against: catalogSchema,
-            label: relativePath(catalogURL, root: root)
-        )
-
-        let controls = try objectArray(catalog["controls"], label: "control catalog controls")
-        let controlIDs = try controls.map { control in
-            try requiredString(control["id"], label: "control id")
-        }
+        let catalog = try RestrictedCatalogYAML.parse(String(contentsOf: catalogURL, encoding: .utf8))
+        try validator.validate(catalog, against: catalogSchema, label: relative(catalogURL))
+        let controls = try objects(catalog["controls"], label: "catalog controls")
+        let controlIDs = try controls.map { try string($0["id"], label: "control id") }
         try assertUnique(controlIDs, label: "control IDs")
 
-        let controlPattern = try NSRegularExpression(pattern: "^EC-[A-Z0-9]+-[0-9]{3}$")
-        let allowedPrinciples = try catalogPrincipleIDs(from: catalogSchema)
+        let controlIDPattern = try NSRegularExpression(pattern: "^EC-[A-Z0-9]+-[0-9]{3}$")
+        let allowedPrinciples = try catalogPrinciples(from: catalogSchema)
         for control in controls {
-            let id = try requiredString(control["id"], label: "control id")
-            guard matches(controlPattern, value: id) else {
-                throw RepositoryValidationError("Invalid control ID: \(id)")
+            let id = try string(control["id"], label: "control id")
+            guard regexMatches(controlIDPattern, id) else {
+                throw ValidationFailure("Invalid control ID: \(id)")
             }
-
-            let principles = try stringArray(control["principles"], label: "\(id) principles")
-            let unknown = Set(principles).subtracting(allowedPrinciples)
+            let unknown = Set(try strings(control["principles"], label: "\(id) principles"))
+                .subtracting(allowedPrinciples)
             guard unknown.isEmpty else {
-                throw RepositoryValidationError(
-                    "\(id) references unknown principles: \(unknown.sorted())"
-                )
+                throw ValidationFailure("\(id) references unknown principles: \(unknown.sorted())")
             }
         }
 
-        let exampleDirectory = root.appendingPathComponent("examples", isDirectory: true)
-        let exampleURLs = try FileManager.default.contentsOfDirectory(
-            at: exampleDirectory,
-            includingPropertiesForKeys: nil
-        )
-        let requestExamples = exampleURLs
-            .filter { $0.lastPathComponent.hasSuffix(".request.json") }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let decisionExamples = exampleURLs
-            .filter { $0.lastPathComponent.hasSuffix(".decision.json") }
-            .sorted { $0.lastPathComponent < $1.lastPathComponent }
-
-        for url in requestExamples {
-            try validator.validate(
-                try loadJSON(url),
-                against: requestSchema,
-                label: relativePath(url, root: root)
-            )
-        }
-        for url in decisionExamples {
-            try validator.validate(
-                try loadJSON(url),
-                against: decisionSchema,
-                label: relativePath(url, root: root)
-            )
-        }
-
-        let vectorURLs = try conformanceVectorURLs(root: root)
-        for url in vectorURLs {
-            let vector = try loadJSONObject(url)
-            let label = relativePath(url, root: root)
-            try validator.validate(vector, against: vectorSchema, label: label)
-
-            guard let request = vector["request"] else {
-                throw RepositoryValidationError("\(label) is missing request")
-            }
-            try validator.validate(
-                request,
-                against: requestSchema,
-                label: "\(label) request"
-            )
-
-            let expected = try requiredObject(vector["expected"], label: "\(label) expected")
-            var referencedControls = try stringArray(
-                expected["required_controls"],
-                label: "\(label) required_controls"
-            )
-            if let forbidden = expected["forbidden_controls"] {
-                referencedControls.append(
-                    contentsOf: try stringArray(
-                        forbidden,
-                        label: "\(label) forbidden_controls"
-                    )
-                )
-            }
-            let unknownControls = Set(referencedControls).subtracting(controlIDs)
-            guard unknownControls.isEmpty else {
-                throw RepositoryValidationError(
-                    "\(label) references unknown controls: \(unknownControls.sorted())"
-                )
-            }
-        }
-
-        let openAPIURL = specDirectory.appendingPathComponent("openapi.yaml")
-        let openAPI = try OpenAPIInspection.parse(
-            String(contentsOf: openAPIURL, encoding: .utf8)
-        )
-        XCTAssertEqual(openAPI.version, "3.1.0", "OpenAPI document must declare 3.1.0")
-
-        let allowedPaths: Set<String> = [
-            "/v1/evaluations",
-            "/v1/policy/manifest",
-            "/v1/health",
-        ]
-        XCTAssertEqual(openAPI.paths, allowedPaths, "Unexpected OpenAPI path set")
-
-        let mutationMethods: Set<String> = ["put", "patch", "delete"]
-        let exposedMutationMethods = Set(openAPI.methods.values.flatMap { $0 })
-            .intersection(mutationMethods)
-        XCTAssertTrue(
-            exposedMutationMethods.isEmpty,
-            "The v1 evaluation API must not expose policy mutation: \(exposedMutationMethods.sorted())"
-        )
-
-        let ethicsURL = root.appendingPathComponent("docs/ETHICS-RULES.md")
-        let ethicsText = try String(contentsOf: ethicsURL, encoding: .utf8)
-        let declaredPrinciples = try declaredEthicsPrincipleIDs(in: ethicsText)
-        let headingPrinciples = try ethicsHeadingPrincipleIDs(in: ethicsText)
-        XCTAssertEqual(
-            headingPrinciples,
-            declaredPrinciples,
-            "ETHICS-RULES.md principle headings differ from its declared stable principle range"
-        )
-
+        let examples = root.appendingPathComponent("examples", isDirectory: true)
+        let requestExamples = try directoryFiles(examples) { $0.lastPathComponent.hasSuffix(".request.json") }
+        let decisionExamples = try directoryFiles(examples) { $0.lastPathComponent.hasSuffix(".decision.json") }
         XCTAssertFalse(requestExamples.isEmpty)
         XCTAssertFalse(decisionExamples.isEmpty)
-        XCTAssertFalse(vectorURLs.isEmpty)
+        for url in requestExamples {
+            try validator.validate(try loadJSON(url), against: requestSchema, label: relative(url))
+        }
+        for url in decisionExamples {
+            try validator.validate(try loadJSON(url), against: decisionSchema, label: relative(url))
+        }
+
+        let vectors = try vectorURLs()
+        XCTAssertFalse(vectors.isEmpty)
+        for url in vectors {
+            let value = try loadJSONObject(url)
+            let label = relative(url)
+            try validator.validate(value, against: vectorSchema, label: label)
+            guard let request = value["request"] else { throw ValidationFailure("\(label): missing request") }
+            try validator.validate(request, against: requestSchema, label: "\(label) request")
+
+            let expected = try object(value["expected"], label: "\(label) expected")
+            var referenced = try strings(expected["required_controls"], label: "\(label) required_controls")
+            if let forbidden = expected["forbidden_controls"] {
+                referenced += try strings(forbidden, label: "\(label) forbidden_controls")
+            }
+            let unknown = Set(referenced).subtracting(controlIDs)
+            guard unknown.isEmpty else {
+                throw ValidationFailure("\(label) references unknown controls: \(unknown.sorted())")
+            }
+        }
+
+        let openAPIURL = spec.appendingPathComponent("openapi.yaml")
+        let openAPI = try OpenAPIInspection.parse(String(contentsOf: openAPIURL, encoding: .utf8))
+        XCTAssertEqual(openAPI.version, "3.1.0")
+        XCTAssertEqual(openAPI.paths, ["/v1/evaluations", "/v1/policy/manifest", "/v1/health"])
+        let mutationMethods: Set<String> = ["put", "patch", "delete"]
+        XCTAssertTrue(Set(openAPI.methods.values.flatMap { $0 }).isDisjoint(with: mutationMethods))
+
+        let ethics = try String(contentsOf: root.appendingPathComponent("docs/ETHICS-RULES.md"), encoding: .utf8)
+        XCTAssertEqual(
+            try ethicsHeadingPrinciples(in: ethics),
+            try declaredEthicsPrinciples(in: ethics),
+            "ETHICS-RULES.md headings differ from its declared stable principle range"
+        )
     }
 
     func testConformanceVectorsAgainstReferenceEvaluator() throws {
-        let root = repositoryRoot
-        let policy = try PolicyBundleLoader.decode(
-            url: root.appendingPathComponent("policy/development-policy.json")
-        )
+        let policy = try PolicyBundleLoader.decode(url: root.appendingPathComponent("policy/development-policy.json"))
         let evaluator = ReferenceEthicsEvaluator(policy: policy)
-        let decisionSchema = try loadJSONObject(
-            root.appendingPathComponent("spec/v1/evaluation-decision.schema.json")
-        )
+        let decisionSchema = try loadJSONObject(root.appendingPathComponent("spec/v1/evaluation-decision.schema.json"))
         let validator = RestrictedJSONSchemaValidator()
-        let vectors = try conformanceVectorURLs(root: root)
-
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let encoder = JSONEncoder()
         encoder.keyEncodingStrategy = .convertToSnakeCase
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
 
-        for url in vectors {
-            let vector = try decoder.decode(
-                ConformanceVector.self,
-                from: Data(contentsOf: url)
-            )
-            let decision = evaluator.evaluate(vector.request)
-
-            XCTAssertEqual(
-                decision.decision,
-                vector.expected.decision,
-                "\(url.lastPathComponent): decision mismatch"
-            )
-
-            let actualControls = Set(decision.controls)
-            let missing = Set(vector.expected.requiredControls).subtracting(actualControls)
-            let forbidden = Set(vector.expected.forbiddenControls ?? []).intersection(actualControls)
-            XCTAssertTrue(
-                missing.isEmpty,
-                "\(url.lastPathComponent): missing controls \(missing.sorted())"
-            )
-            XCTAssertTrue(
-                forbidden.isEmpty,
-                "\(url.lastPathComponent): forbidden controls present \(forbidden.sorted())"
-            )
-
-            let encodedDecision = try encoder.encode(decision)
-            let decisionJSON = try JSONSerialization.jsonObject(
-                with: encodedDecision,
-                options: [.fragmentsAllowed]
-            )
-            try validator.validate(
-                decisionJSON,
-                against: decisionSchema,
-                label: "\(url.lastPathComponent) evaluator decision"
-            )
-        }
-
+        let vectors = try vectorURLs()
         XCTAssertFalse(vectors.isEmpty)
+        for url in vectors {
+            let vector = try decoder.decode(ConformanceVector.self, from: Data(contentsOf: url))
+            let decision = evaluator.evaluate(vector.request)
+            XCTAssertEqual(decision.decision, vector.expected.decision, url.lastPathComponent)
+
+            let actual = Set(decision.controls)
+            XCTAssertTrue(Set(vector.expected.requiredControls).isSubset(of: actual), url.lastPathComponent)
+            XCTAssertTrue(Set(vector.expected.forbiddenControls ?? []).isDisjoint(with: actual), url.lastPathComponent)
+
+            let encoded = try encoder.encode(decision)
+            let output = try JSONSerialization.jsonObject(with: encoded, options: [.fragmentsAllowed])
+            try validator.validate(output, against: decisionSchema, label: "\(url.lastPathComponent) evaluator decision")
+        }
     }
 
-    private func conformanceVectorURLs(root: URL) throws -> [URL] {
-        try FileManager.default.contentsOfDirectory(
-            at: root.appendingPathComponent("conformance/vectors", isDirectory: true),
-            includingPropertiesForKeys: nil
-        )
-        .filter { $0.pathExtension == "json" }
-        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    private func vectorURLs() throws -> [URL] {
+        try directoryFiles(root.appendingPathComponent("conformance/vectors", isDirectory: true)) {
+            $0.pathExtension == "json"
+        }
+    }
+
+    private func directoryFiles(_ directory: URL, where predicate: (URL) -> Bool) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter(predicate)
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+    }
+
+    private func relative(_ url: URL) -> String {
+        let rootPath = root.standardizedFileURL.path
+        let path = url.standardizedFileURL.path
+        guard path.hasPrefix(rootPath + "/") else { return path }
+        return String(path.dropFirst(rootPath.count + 1))
     }
 }
 
@@ -264,289 +164,149 @@ private struct ConformanceVector: Decodable {
         let requiredControls: [String]
         let forbiddenControls: [String]?
     }
-
     let name: String
     let request: EvaluationRequest
     let expected: Expected
 }
 
-private struct RepositoryValidationError: Error, CustomStringConvertible {
+private struct ValidationFailure: Error, CustomStringConvertible {
     let description: String
-
-    init(_ description: String) {
-        self.description = description
-    }
+    init(_ description: String) { self.description = description }
 }
 
+/// Deliberately implements only the JSON Schema 2020-12 keywords used by spec/v1.
+/// Unknown keywords fail schema validation so the subset cannot silently weaken as schemas evolve.
 private struct RestrictedJSONSchemaValidator {
-    private let supportedKeywords: Set<String> = [
-        "$schema",
-        "$id",
-        "$ref",
-        "$defs",
-        "title",
-        "description",
-        "type",
-        "additionalProperties",
-        "required",
-        "properties",
-        "const",
-        "enum",
-        "minLength",
-        "maxLength",
-        "pattern",
-        "format",
-        "items",
-        "minItems",
-        "maxItems",
-        "uniqueItems",
+    private let keywords: Set<String> = [
+        "$schema", "$id", "$ref", "$defs", "title", "description", "type",
+        "additionalProperties", "required", "properties", "const", "enum",
+        "minLength", "maxLength", "pattern", "format", "items", "minItems",
+        "maxItems", "uniqueItems",
     ]
 
     func checkSchema(_ schema: [String: Any], label: String) throws {
         guard schema["$schema"] as? String == "https://json-schema.org/draft/2020-12/schema" else {
-            throw RepositoryValidationError(
-                "\(label): schema must declare JSON Schema Draft 2020-12"
-            )
+            throw ValidationFailure("\(label): expected JSON Schema Draft 2020-12")
         }
-        try checkSchemaNode(schema, path: label)
+        try checkNode(schema, path: label)
     }
 
-    func validate(_ instance: Any, against schema: [String: Any], label: String) throws {
-        try validateNode(
-            instance,
-            schema: schema,
-            rootSchema: schema,
-            path: label
-        )
+    func validate(_ value: Any, against schema: [String: Any], label: String) throws {
+        try validateNode(value, schema: schema, root: schema, path: label)
     }
 
-    private func checkSchemaNode(_ schema: [String: Any], path: String) throws {
-        let unknownKeywords = Set(schema.keys).subtracting(supportedKeywords)
-        guard unknownKeywords.isEmpty else {
-            throw RepositoryValidationError(
-                "\(path): unsupported JSON Schema keywords \(unknownKeywords.sorted())"
-            )
-        }
+    private func checkNode(_ schema: [String: Any], path: String) throws {
+        let unknown = Set(schema.keys).subtracting(keywords)
+        guard unknown.isEmpty else { throw ValidationFailure("\(path): unsupported schema keywords \(unknown.sorted())") }
 
         if let ref = schema["$ref"] {
-            let value = try requiredString(ref, label: "\(path).$ref")
-            guard value.hasPrefix("#/$defs/") else {
-                throw RepositoryValidationError(
-                    "\(path): only local #/$defs references are supported, got \(value)"
-                )
+            let value = try string(ref, label: "\(path).$ref")
+            guard value.hasPrefix("#/$defs/") else { throw ValidationFailure("\(path): unsupported $ref \(value)") }
+        }
+        if let rawType = schema["type"] {
+            let types = rawType as? String != nil ? [rawType as! String] : try strings(rawType, label: "\(path).type")
+            let unsupported = Set(types).subtracting(["object", "array", "string", "boolean", "null"])
+            guard unsupported.isEmpty else { throw ValidationFailure("\(path): unsupported schema types \(unsupported.sorted())") }
+        }
+        if let value = schema["additionalProperties"], !(value is Bool) {
+            throw ValidationFailure("\(path).additionalProperties must be boolean")
+        }
+        if let value = schema["required"] { _ = try strings(value, label: "\(path).required") }
+        if let value = schema["properties"] {
+            for (name, child) in try object(value, label: "\(path).properties") {
+                try checkNode(try object(child, label: "\(path).properties.\(name)"), path: "\(path).properties.\(name)")
             }
         }
-
-        if let type = schema["type"] {
-            let values: [String]
-            if let single = type as? String {
-                values = [single]
-            } else {
-                values = try stringArray(type, label: "\(path).type")
-            }
-            let supportedTypes: Set<String> = ["object", "array", "string", "boolean", "null"]
-            let unsupported = Set(values).subtracting(supportedTypes)
-            guard unsupported.isEmpty else {
-                throw RepositoryValidationError(
-                    "\(path): unsupported JSON Schema types \(unsupported.sorted())"
-                )
+        if let value = schema["$defs"] {
+            for (name, child) in try object(value, label: "\(path).$defs") {
+                try checkNode(try object(child, label: "\(path).$defs.\(name)"), path: "\(path).$defs.\(name)")
             }
         }
-
-        if let additionalProperties = schema["additionalProperties"],
-           !(additionalProperties is Bool) {
-            throw RepositoryValidationError(
-                "\(path).additionalProperties must be boolean in the supported subset"
-            )
+        if let value = schema["items"] {
+            try checkNode(try object(value, label: "\(path).items"), path: "\(path).items")
         }
-
-        if let required = schema["required"] {
-            _ = try stringArray(required, label: "\(path).required")
+        if let value = schema["pattern"] { _ = try NSRegularExpression(pattern: string(value, label: "\(path).pattern")) }
+        if let value = schema["format"], try string(value, label: "\(path).format") != "date-time" {
+            throw ValidationFailure("\(path): only date-time format is supported")
         }
-
-        if let properties = schema["properties"] {
-            let object = try requiredObject(properties, label: "\(path).properties")
-            for (name, value) in object {
-                let child = try requiredObject(value, label: "\(path).properties.\(name)")
-                try checkSchemaNode(child, path: "\(path).properties.\(name)")
-            }
+        for key in ["minLength", "maxLength", "minItems", "maxItems"] where schema[key] != nil {
+            guard integer(schema[key]) != nil else { throw ValidationFailure("\(path).\(key) must be integer") }
         }
-
-        if let definitions = schema["$defs"] {
-            let object = try requiredObject(definitions, label: "\(path).$defs")
-            for (name, value) in object {
-                let child = try requiredObject(value, label: "\(path).$defs.\(name)")
-                try checkSchemaNode(child, path: "\(path).$defs.\(name)")
-            }
-        }
-
-        if let items = schema["items"] {
-            let child = try requiredObject(items, label: "\(path).items")
-            try checkSchemaNode(child, path: "\(path).items")
-        }
-
-        if let pattern = schema["pattern"] {
-            _ = try NSRegularExpression(
-                pattern: requiredString(pattern, label: "\(path).pattern")
-            )
-        }
-
-        if let format = schema["format"] {
-            let value = try requiredString(format, label: "\(path).format")
-            guard value == "date-time" else {
-                throw RepositoryValidationError(
-                    "\(path): unsupported format in constrained validator: \(value)"
-                )
-            }
-        }
-
-        for keyword in ["minLength", "maxLength", "minItems", "maxItems"] {
-            if let value = schema[keyword], integer(value) == nil {
-                throw RepositoryValidationError("\(path).\(keyword) must be an integer")
-            }
-        }
-
-        if let uniqueItems = schema["uniqueItems"], !(uniqueItems is Bool) {
-            throw RepositoryValidationError("\(path).uniqueItems must be boolean")
+        if let value = schema["uniqueItems"], !(value is Bool) {
+            throw ValidationFailure("\(path).uniqueItems must be boolean")
         }
     }
 
-    private func validateNode(
-        _ instance: Any,
-        schema: [String: Any],
-        rootSchema: [String: Any],
-        path: String
-    ) throws {
+    private func validateNode(_ value: Any, schema: [String: Any], root: [String: Any], path: String) throws {
         if let ref = schema["$ref"] as? String {
-            let target = try resolve(ref: ref, in: rootSchema, path: path)
-            try validateNode(instance, schema: target, rootSchema: rootSchema, path: path)
+            try validateNode(value, schema: try resolve(ref, root: root, path: path), root: root, path: path)
             return
         }
 
-        if let type = schema["type"] {
-            let allowedTypes: [String]
-            if let single = type as? String {
-                allowedTypes = [single]
-            } else {
-                allowedTypes = try stringArray(type, label: "\(path) schema type")
+        if let rawType = schema["type"] {
+            let types = rawType as? String != nil ? [rawType as! String] : try strings(rawType, label: "\(path) schema type")
+            guard types.contains(where: { matchesType(value, $0) }) else {
+                throw ValidationFailure("\(path): expected \(types), got \(typeName(value))")
             }
-            guard allowedTypes.contains(where: { matchesJSONType(instance, type: $0) }) else {
-                throw RepositoryValidationError(
-                    "\(path): expected type \(allowedTypes), got \(jsonTypeName(instance))"
-                )
+        }
+        if let constant = schema["const"], !jsonEqual(value, constant) { throw ValidationFailure("\(path): const mismatch") }
+        if let allowed = schema["enum"] as? [Any], !allowed.contains(where: { jsonEqual(value, $0) }) {
+            throw ValidationFailure("\(path): value not in enum")
+        }
+
+        if let text = value as? String {
+            if let min = integer(schema["minLength"]), text.count < min { throw ValidationFailure("\(path): shorter than minLength") }
+            if let max = integer(schema["maxLength"]), text.count > max { throw ValidationFailure("\(path): longer than maxLength") }
+            if let pattern = schema["pattern"] as? String, !regexMatches(try NSRegularExpression(pattern: pattern), text) {
+                throw ValidationFailure("\(path): pattern mismatch")
+            }
+            if schema["format"] as? String == "date-time", ISO8601DateFormatter().date(from: text) == nil {
+                throw ValidationFailure("\(path): invalid date-time")
             }
         }
 
-        if let constant = schema["const"], !jsonEqual(instance, constant) {
-            throw RepositoryValidationError("\(path): value does not match const")
-        }
-
-        if let enumeration = schema["enum"] as? [Any],
-           !enumeration.contains(where: { jsonEqual(instance, $0) }) {
-            throw RepositoryValidationError("\(path): value is not in enum")
-        }
-
-        if let string = instance as? String {
-            if let minimum = integer(schema["minLength"]), string.count < minimum {
-                throw RepositoryValidationError("\(path): string shorter than minLength \(minimum)")
-            }
-            if let maximum = integer(schema["maxLength"]), string.count > maximum {
-                throw RepositoryValidationError("\(path): string longer than maxLength \(maximum)")
-            }
-            if let pattern = schema["pattern"] as? String {
-                let expression = try NSRegularExpression(pattern: pattern)
-                guard matches(expression, value: string) else {
-                    throw RepositoryValidationError(
-                        "\(path): string does not match pattern \(pattern)"
-                    )
-                }
-            }
-            if schema["format"] as? String == "date-time" {
-                let formatter = ISO8601DateFormatter()
-                guard formatter.date(from: string) != nil else {
-                    throw RepositoryValidationError("\(path): invalid date-time")
-                }
-            }
-        }
-
-        if let object = instance as? [String: Any] {
+        if let dictionary = value as? [String: Any] {
             let properties = (schema["properties"] as? [String: Any]) ?? [:]
             if let required = schema["required"] {
-                for key in try stringArray(required, label: "\(path) required keys") {
-                    guard object[key] != nil else {
-                        throw RepositoryValidationError("\(path): missing required property \(key)")
-                    }
+                for key in try strings(required, label: "\(path) required") where dictionary[key] == nil {
+                    throw ValidationFailure("\(path): missing required property \(key)")
                 }
             }
-
             if schema["additionalProperties"] as? Bool == false {
-                let unknownKeys = Set(object.keys).subtracting(properties.keys)
-                guard unknownKeys.isEmpty else {
-                    throw RepositoryValidationError(
-                        "\(path): unexpected properties \(unknownKeys.sorted())"
-                    )
-                }
+                let unknown = Set(dictionary.keys).subtracting(properties.keys)
+                guard unknown.isEmpty else { throw ValidationFailure("\(path): unexpected properties \(unknown.sorted())") }
             }
-
-            for (key, childValue) in object {
-                guard let rawChildSchema = properties[key] else { continue }
-                let childSchema = try requiredObject(
-                    rawChildSchema,
-                    label: "\(path).\(key) schema"
-                )
-                try validateNode(
-                    childValue,
-                    schema: childSchema,
-                    rootSchema: rootSchema,
-                    path: "\(path).\(key)"
-                )
+            for (key, child) in dictionary {
+                guard let childSchema = properties[key] else { continue }
+                try validateNode(child, schema: try object(childSchema, label: "\(path).\(key) schema"), root: root, path: "\(path).\(key)")
             }
         }
 
-        if let array = instance as? [Any] {
-            if let minimum = integer(schema["minItems"]), array.count < minimum {
-                throw RepositoryValidationError("\(path): array shorter than minItems \(minimum)")
-            }
-            if let maximum = integer(schema["maxItems"]), array.count > maximum {
-                throw RepositoryValidationError("\(path): array longer than maxItems \(maximum)")
-            }
+        if let array = value as? [Any] {
+            if let min = integer(schema["minItems"]), array.count < min { throw ValidationFailure("\(path): fewer than minItems") }
+            if let max = integer(schema["maxItems"]), array.count > max { throw ValidationFailure("\(path): more than maxItems") }
             if schema["uniqueItems"] as? Bool == true {
-                let canonicalItems = try array.map(canonicalJSON)
-                guard Set(canonicalItems).count == canonicalItems.count else {
-                    throw RepositoryValidationError("\(path): array items must be unique")
-                }
+                let encoded = try array.map(canonicalJSON)
+                guard Set(encoded).count == encoded.count else { throw ValidationFailure("\(path): duplicate array items") }
             }
-            if let rawItemSchema = schema["items"] {
-                let itemSchema = try requiredObject(rawItemSchema, label: "\(path) item schema")
+            if let itemSchema = schema["items"] {
+                let schemaObject = try object(itemSchema, label: "\(path) item schema")
                 for (index, item) in array.enumerated() {
-                    try validateNode(
-                        item,
-                        schema: itemSchema,
-                        rootSchema: rootSchema,
-                        path: "\(path)[\(index)]"
-                    )
+                    try validateNode(item, schema: schemaObject, root: root, path: "\(path)[\(index)]")
                 }
             }
         }
     }
 
-    private func resolve(
-        ref: String,
-        in rootSchema: [String: Any],
-        path: String
-    ) throws -> [String: Any] {
-        guard ref.hasPrefix("#/") else {
-            throw RepositoryValidationError("\(path): unsupported $ref \(ref)")
-        }
-        var current: Any = rootSchema
-        for component in ref.dropFirst(2).split(separator: "/") {
-            guard let object = current as? [String: Any],
-                  let next = object[String(component)] else {
-                throw RepositoryValidationError("\(path): unresolved $ref \(ref)")
-            }
+    private func resolve(_ ref: String, root: [String: Any], path: String) throws -> [String: Any] {
+        guard ref.hasPrefix("#/") else { throw ValidationFailure("\(path): unsupported $ref \(ref)") }
+        var current: Any = root
+        for key in ref.dropFirst(2).split(separator: "/") {
+            let dictionary = try object(current, label: "\(path) $ref")
+            guard let next = dictionary[String(key)] else { throw ValidationFailure("\(path): unresolved $ref \(ref)") }
             current = next
         }
-        return try requiredObject(current, label: "\(path) resolved $ref")
+        return try object(current, label: "\(path) resolved $ref")
     }
 }
 
@@ -554,110 +314,66 @@ private enum RestrictedCatalogYAML {
     static func parse(_ text: String) throws -> [String: Any] {
         var result = [String: Any]()
         var controls = [[String: Any]]()
-        var currentControl: [String: Any]?
+        var current: [String: Any]?
         var inControls = false
 
-        func flushCurrentControl() {
-            if let currentControl {
-                controls.append(currentControl)
-            }
-            currentControl = nil
+        func flush() {
+            if let current { controls.append(current) }
+            current = nil
         }
 
-        for (lineNumber, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-            let line = String(rawLine)
+        for (index, raw) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+            let line = String(raw)
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty || trimmed.hasPrefix("#") {
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            if line == "controls:" { flush(); inControls = true; continue }
+            if inControls && line.hasPrefix("  - ") {
+                flush()
+                let pair = try pair(String(line.dropFirst(4)), line: index + 1)
+                current = [pair.0: pair.1]
                 continue
             }
-
-            if line == "controls:" {
-                flushCurrentControl()
-                inControls = true
+            if inControls && line.hasPrefix("    ") {
+                guard current != nil else { throw ValidationFailure("control-catalog.yaml:\(index + 1): field without item") }
+                let entry = try pair(String(line.dropFirst(4)), line: index + 1)
+                current?[entry.0] = entry.1
                 continue
             }
-
-            if inControls, line.hasPrefix("  - ") {
-                flushCurrentControl()
-                let pair = try parseKeyValue(
-                    String(line.dropFirst(4)),
-                    lineNumber: lineNumber + 1
-                )
-                currentControl = [pair.key: pair.value]
+            if !inControls && !line.hasPrefix(" ") {
+                let entry = try pair(line, line: index + 1)
+                result[entry.0] = entry.1
                 continue
             }
-
-            if inControls, line.hasPrefix("    ") {
-                guard currentControl != nil else {
-                    throw RepositoryValidationError(
-                        "control-catalog.yaml:\(lineNumber + 1): field without a control item"
-                    )
-                }
-                let pair = try parseKeyValue(
-                    String(line.dropFirst(4)),
-                    lineNumber: lineNumber + 1
-                )
-                currentControl?[pair.key] = pair.value
-                continue
-            }
-
-            if !inControls, !line.hasPrefix(" ") {
-                let pair = try parseKeyValue(line, lineNumber: lineNumber + 1)
-                result[pair.key] = pair.value
-                continue
-            }
-
-            throw RepositoryValidationError(
-                "control-catalog.yaml:\(lineNumber + 1): unsupported YAML structure"
-            )
+            throw ValidationFailure("control-catalog.yaml:\(index + 1): unsupported YAML structure")
         }
-
-        flushCurrentControl()
+        flush()
         result["controls"] = controls
         return result
     }
 
-    private static func parseKeyValue(
-        _ text: String,
-        lineNumber: Int
-    ) throws -> (key: String, value: Any) {
-        guard let colon = text.firstIndex(of: ":") else {
-            throw RepositoryValidationError(
-                "control-catalog.yaml:\(lineNumber): expected key: value"
-            )
-        }
-        let key = text[..<colon].trimmingCharacters(in: .whitespaces)
-        let rawValue = text[text.index(after: colon)...].trimmingCharacters(in: .whitespaces)
-        guard !key.isEmpty, !rawValue.isEmpty else {
-            throw RepositoryValidationError(
-                "control-catalog.yaml:\(lineNumber): empty key or value"
-            )
-        }
-        return (key, parseScalar(rawValue))
+    private static func pair(_ text: String, line: Int) throws -> (String, Any) {
+        guard let colon = text.firstIndex(of: ":") else { throw ValidationFailure("control-catalog.yaml:\(line): expected key: value") }
+        let key = String(text[..<colon]).trimmingCharacters(in: .whitespaces)
+        let raw = String(text[text.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
+        guard !key.isEmpty, !raw.isEmpty else { throw ValidationFailure("control-catalog.yaml:\(line): empty key/value") }
+        return (key, scalar(raw))
     }
 
-    private static func parseScalar(_ rawValue: String) -> Any {
-        if rawValue.hasPrefix("["), rawValue.hasSuffix("]") {
-            let body = rawValue.dropFirst().dropLast()
-            if body.trimmingCharacters(in: .whitespaces).isEmpty {
-                return [String]()
-            }
-            return body.split(separator: ",").map {
-                stripQuotes(String($0).trimmingCharacters(in: .whitespaces))
-            }
+    private static func scalar(_ raw: String) -> Any {
+        if raw.hasPrefix("[") && raw.hasSuffix("]") {
+            let body = String(raw.dropFirst().dropLast()).trimmingCharacters(in: .whitespaces)
+            if body.isEmpty { return [String]() }
+            return body.split(separator: ",").map { strip(String($0).trimmingCharacters(in: .whitespaces)) }
         }
-        switch rawValue {
-        case "true": return true
-        case "false": return false
-        case "null": return NSNull()
-        default: return stripQuotes(rawValue)
-        }
+        if raw == "true" { return true }
+        if raw == "false" { return false }
+        if raw == "null" { return NSNull() }
+        return strip(raw)
     }
 
-    private static func stripQuotes(_ value: String) -> String {
+    private static func strip(_ value: String) -> String {
         guard value.count >= 2 else { return value }
-        if (value.hasPrefix("\"") && value.hasSuffix("\""))
-            || (value.hasPrefix("'") && value.hasSuffix("'")) {
+        if (value.hasPrefix("\"") && value.hasSuffix("\"")) || (value.hasPrefix("'") && value.hasSuffix("'")) {
             return String(value.dropFirst().dropLast())
         }
         return value
@@ -667,185 +383,114 @@ private enum RestrictedCatalogYAML {
 private struct OpenAPIInspection {
     let version: String
     let methods: [String: Set<String>]
+    var paths: Set<String> { Set(methods.keys) }
 
-    var paths: Set<String> {
-        Set(methods.keys)
-    }
-
-    static func parse(_ text: String) throws -> OpenAPIInspection {
+    static func parse(_ text: String) throws -> Self {
         var version: String?
         var methods = [String: Set<String>]()
         var inPaths = false
         var currentPath: String?
+        let HTTPMethods: Set<String> = ["get", "post", "put", "patch", "delete", "head", "options", "trace"]
 
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
-            let line = String(rawLine)
+        for raw in text.split(separator: "\n", omittingEmptySubsequences: false) {
+            let line = String(raw)
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.isEmpty || trimmed.hasPrefix("#") {
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            let indent = line.prefix { $0 == " " }.count
+
+            if indent == 0 && trimmed.hasPrefix("openapi:") {
+                version = String(trimmed.dropFirst("openapi:".count)).trimmingCharacters(in: .whitespaces)
                 continue
             }
-            let indentation = line.prefix { $0 == " " }.count
-
-            if indentation == 0, trimmed.hasPrefix("openapi:") {
-                version = trimmed.dropFirst("openapi:".count)
-                    .trimmingCharacters(in: .whitespaces)
-                continue
-            }
-
-            if indentation == 0, trimmed == "paths:" {
-                inPaths = true
-                currentPath = nil
-                continue
-            }
-
-            if inPaths, indentation == 0 {
-                inPaths = false
-                currentPath = nil
-            }
-
+            if indent == 0 && trimmed == "paths:" { inPaths = true; currentPath = nil; continue }
+            if inPaths && indent == 0 { inPaths = false; currentPath = nil }
             guard inPaths else { continue }
 
-            if indentation == 2, trimmed.hasPrefix("/"), trimmed.hasSuffix(":") {
+            if indent == 2 && trimmed.hasPrefix("/") && trimmed.hasSuffix(":") {
                 let path = String(trimmed.dropLast())
                 currentPath = path
                 methods[path, default: []] = []
-                continue
-            }
-
-            if indentation == 4,
-               let path = currentPath,
-               trimmed.hasSuffix(":") {
+            } else if indent == 4, let path = currentPath, trimmed.hasSuffix(":") {
                 let method = String(trimmed.dropLast()).lowercased()
-                if ["get", "post", "put", "patch", "delete", "head", "options", "trace"].contains(method) {
-                    methods[path, default: []].insert(method)
-                }
+                if HTTPMethods.contains(method) { methods[path, default: []].insert(method) }
             }
         }
-
-        guard let version else {
-            throw RepositoryValidationError("openapi.yaml: missing openapi version")
-        }
-        return OpenAPIInspection(version: version, methods: methods)
+        guard let version else { throw ValidationFailure("openapi.yaml: missing version") }
+        return Self(version: version, methods: methods)
     }
 }
 
 private func loadJSON(_ url: URL) throws -> Any {
-    try JSONSerialization.jsonObject(
-        with: Data(contentsOf: url),
-        options: [.fragmentsAllowed]
-    )
+    try JSONSerialization.jsonObject(with: Data(contentsOf: url), options: [.fragmentsAllowed])
 }
 
 private func loadJSONObject(_ url: URL) throws -> [String: Any] {
-    try requiredObject(loadJSON(url), label: url.path)
+    try object(loadJSON(url), label: url.path)
 }
 
-private func requiredSchema(
-    _ name: String,
-    from schemas: [String: [String: Any]]
-) throws -> [String: Any] {
-    guard let schema = schemas[name] else {
-        throw RepositoryValidationError("Missing required schema: \(name)")
-    }
-    return schema
-}
-
-private func requiredObject(_ value: Any?, label: String) throws -> [String: Any] {
-    guard let value, let object = value as? [String: Any] else {
-        throw RepositoryValidationError("\(label): expected object")
-    }
-    return object
-}
-
-private func objectArray(_ value: Any?, label: String) throws -> [[String: Any]] {
-    guard let value, let array = value as? [Any] else {
-        throw RepositoryValidationError("\(label): expected array")
-    }
-    return try array.enumerated().map { index, element in
-        try requiredObject(element, label: "\(label)[\(index)]")
-    }
-}
-
-private func requiredString(_ value: Any?, label: String) throws -> String {
-    guard let value = value as? String else {
-        throw RepositoryValidationError("\(label): expected string")
-    }
+private func schema(_ name: String, in schemas: [String: [String: Any]]) throws -> [String: Any] {
+    guard let value = schemas[name] else { throw ValidationFailure("Missing schema: \(name)") }
     return value
 }
 
-private func stringArray(_ value: Any?, label: String) throws -> [String] {
-    guard let value, let array = value as? [Any] else {
-        throw RepositoryValidationError("\(label): expected string array")
-    }
-    return try array.enumerated().map { index, element in
-        try requiredString(element, label: "\(label)[\(index)]")
-    }
+private func object(_ value: Any?, label: String) throws -> [String: Any] {
+    guard let value, let result = value as? [String: Any] else { throw ValidationFailure("\(label): expected object") }
+    return result
+}
+
+private func objects(_ value: Any?, label: String) throws -> [[String: Any]] {
+    guard let value, let array = value as? [Any] else { throw ValidationFailure("\(label): expected array") }
+    return try array.enumerated().map { try object($0.element, label: "\(label)[\($0.offset)]") }
+}
+
+private func string(_ value: Any?, label: String) throws -> String {
+    guard let result = value as? String else { throw ValidationFailure("\(label): expected string") }
+    return result
+}
+
+private func strings(_ value: Any?, label: String) throws -> [String] {
+    guard let value, let array = value as? [Any] else { throw ValidationFailure("\(label): expected string array") }
+    return try array.enumerated().map { try string($0.element, label: "\(label)[\($0.offset)]") }
 }
 
 private func assertUnique(_ values: [String], label: String) throws {
-    var seen = Set<String>()
-    var duplicates = Set<String>()
-    for value in values where !seen.insert(value).inserted {
-        duplicates.insert(value)
-    }
-    guard duplicates.isEmpty else {
-        throw RepositoryValidationError("Duplicate \(label): \(duplicates.sorted())")
-    }
+    var seen = Set<String>(), duplicates = Set<String>()
+    for value in values where !seen.insert(value).inserted { duplicates.insert(value) }
+    guard duplicates.isEmpty else { throw ValidationFailure("Duplicate \(label): \(duplicates.sorted())") }
 }
 
-private func catalogPrincipleIDs(from schema: [String: Any]) throws -> Set<String> {
-    let rootProperties = try requiredObject(schema["properties"], label: "catalog schema properties")
-    let controls = try requiredObject(rootProperties["controls"], label: "catalog controls schema")
-    let controlItem = try requiredObject(controls["items"], label: "catalog control item schema")
-    let controlProperties = try requiredObject(
-        controlItem["properties"],
-        label: "catalog control properties"
-    )
-    let principles = try requiredObject(
-        controlProperties["principles"],
-        label: "catalog principles schema"
-    )
-    let principleItem = try requiredObject(
-        principles["items"],
-        label: "catalog principle item schema"
-    )
-    return Set(try stringArray(principleItem["enum"], label: "catalog principle enum"))
+private func catalogPrinciples(from schema: [String: Any]) throws -> Set<String> {
+    let root = try object(schema["properties"], label: "catalog properties")
+    let controls = try object(root["controls"], label: "controls schema")
+    let item = try object(controls["items"], label: "control item")
+    let properties = try object(item["properties"], label: "control properties")
+    let principles = try object(properties["principles"], label: "principles schema")
+    let principle = try object(principles["items"], label: "principle item")
+    return Set(try strings(principle["enum"], label: "principle enum"))
 }
 
-private func declaredEthicsPrincipleIDs(in text: String) throws -> Set<String> {
-    let pattern = #"stable identifiers `E1` through `E([0-9]+)`"#
-    let expression = try NSRegularExpression(pattern: pattern)
+private func declaredEthicsPrinciples(in text: String) throws -> Set<String> {
+    let regex = try NSRegularExpression(pattern: #"stable identifiers `E1` through `E([0-9]+)`"#)
     let range = NSRange(text.startIndex..<text.endIndex, in: text)
-    guard let match = expression.firstMatch(in: text, range: range),
-          let upperRange = Range(match.range(at: 1), in: text),
-          let upperBound = Int(text[upperRange]),
-          upperBound >= 1 else {
-        throw RepositoryValidationError(
-            "ETHICS-RULES.md does not declare a stable E1-through-EN principle range"
-        )
+    guard let match = regex.firstMatch(in: text, range: range),
+          let capture = Range(match.range(at: 1), in: text),
+          let upper = Int(text[capture]), upper > 0 else {
+        throw ValidationFailure("ETHICS-RULES.md: missing stable E1-through-EN declaration")
     }
-    return Set((1...upperBound).map { "E\($0)" })
+    return Set((1...upper).map { "E\($0)" })
 }
 
-private func ethicsHeadingPrincipleIDs(in text: String) throws -> Set<String> {
-    let expression = try NSRegularExpression(pattern: #"(?m)^### (E[0-9]+)\."#)
+private func ethicsHeadingPrinciples(in text: String) throws -> Set<String> {
+    let regex = try NSRegularExpression(pattern: #"(?m)^### (E[0-9]+)\."#)
     let range = NSRange(text.startIndex..<text.endIndex, in: text)
-    return Set(expression.matches(in: text, range: range).compactMap { match in
-        guard let swiftRange = Range(match.range(at: 1), in: text) else { return nil }
-        return String(text[swiftRange])
+    return Set(regex.matches(in: text, range: range).compactMap {
+        guard let capture = Range($0.range(at: 1), in: text) else { return nil }
+        return String(text[capture])
     })
 }
 
-private func relativePath(_ url: URL, root: URL) -> String {
-    let rootPath = root.standardizedFileURL.path
-    let path = url.standardizedFileURL.path
-    guard path.hasPrefix(rootPath + "/") else { return path }
-    return String(path.dropFirst(rootPath.count + 1))
-}
-
-private func matches(_ expression: NSRegularExpression, value: String) -> Bool {
-    let range = NSRange(value.startIndex..<value.endIndex, in: value)
-    return expression.firstMatch(in: value, range: range) != nil
+private func regexMatches(_ regex: NSRegularExpression, _ value: String) -> Bool {
+    regex.firstMatch(in: value, range: NSRange(value.startIndex..<value.endIndex, in: value)) != nil
 }
 
 private func integer(_ value: Any?) -> Int? {
@@ -854,7 +499,7 @@ private func integer(_ value: Any?) -> Int? {
     return nil
 }
 
-private func matchesJSONType(_ value: Any, type: String) -> Bool {
+private func matchesType(_ value: Any, _ type: String) -> Bool {
     switch type {
     case "object": return value is [String: Any]
     case "array": return value is [Any]
@@ -865,27 +510,25 @@ private func matchesJSONType(_ value: Any, type: String) -> Bool {
     }
 }
 
-private func jsonTypeName(_ value: Any) -> String {
+private func typeName(_ value: Any) -> String {
     if value is [String: Any] { return "object" }
     if value is [Any] { return "array" }
     if value is String { return "string" }
     if value is Bool { return "boolean" }
     if value is NSNull { return "null" }
-    if value is NSNumber { return "number" }
-    return String(describing: type(of: value))
+    return "other"
 }
 
 private func jsonEqual(_ lhs: Any, _ rhs: Any) -> Bool {
-    (lhs as AnyObject).isEqual(rhs)
+    if lhs is NSNull && rhs is NSNull { return true }
+    if let left = lhs as? String, let right = rhs as? String { return left == right }
+    if let left = lhs as? Bool, let right = rhs as? Bool { return left == right }
+    if let left = lhs as? NSNumber, let right = rhs as? NSNumber { return left == right }
+    return (try? canonicalJSON(lhs)) == (try? canonicalJSON(rhs))
 }
 
 private func canonicalJSON(_ value: Any) throws -> String {
-    let data = try JSONSerialization.data(
-        withJSONObject: value,
-        options: [.sortedKeys, .fragmentsAllowed]
-    )
-    guard let string = String(data: data, encoding: .utf8) else {
-        throw RepositoryValidationError("Unable to encode canonical JSON")
-    }
-    return string
+    let data = try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys, .fragmentsAllowed])
+    guard let result = String(data: data, encoding: .utf8) else { throw ValidationFailure("Unable to encode canonical JSON") }
+    return result
 }
