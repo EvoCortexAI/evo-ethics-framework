@@ -161,13 +161,14 @@ Production enforcement remains blocked until the ethical source, action/control 
 
 ## Development quick start
 
-Requirements: Swift 6.3 / Xcode 26 / macOS 26 and Python 3.11+.
+Requirements: Swift 6.3 / Xcode 26 / macOS 26.
 
 ```sh
 swift test
-python3 scripts/validate_specs.py
 swift run evo-ethicsctl evaluate examples/container-delete.request.json
 ```
+
+`swift test` performs repository validation for the JSON Schemas, policy bundle, control catalog, examples, OpenAPI guardrails, ethics-heading drift, and conformance vectors in addition to the evaluator unit tests.
 
 Trusted CI runs on organization-managed Apple infrastructure. Public/untrusted pull requests are intentionally not dispatched to private self-hosted runners while external contributions are closed.
 
