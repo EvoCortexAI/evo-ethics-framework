@@ -1,10 +1,11 @@
 # EvoEthics Framework
 
 **Status:** In development; not production-ready  
+**Current development license:** Apache License 2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).  
 **Ethics source:** `docs/ETHICS-RULES.md` version **1.1** (approved 2026-08-21).  
 A proposed 1.2 amendment (E11 Human Privacy) is under review and is **not** authoritative until approved and merged.
 
-> **Public source status:** This repository may be publicly inspected under the proprietary [`LICENSE`](LICENSE). Public visibility does **not** make it open source. External contributions are currently **closed**; see [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and [`LICENSING.md`](LICENSING.md).
+> **License vs enrollment:** Current `main` first-party materials are Apache-2.0. Public visibility, production-readiness, and external contributions remain separate decisions. External contributions are currently **closed**; see [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) and [`LICENSING.md`](LICENSING.md).
 
 EvoEthics is the proposed deterministic ethics-policy subsystem of EvoIntelligenceFabric. It converts approved EvoCortexAI ethical constraints into inspectable decisions and obligations that Saturn components can enforce.
 
@@ -190,18 +191,21 @@ The reference evaluator demonstrates the contract and conformance behavior. It i
 
 ## Current repository license
 
-EvoCortexAI-owned material in this repository is currently governed by the proprietary [`LICENSE`](LICENSE), regardless of repository visibility. Public visibility is for transparency, inspection, and evaluation and does not make the repository open source or invite external contributions.
+Current `main` first-party materials are offered under the Apache License, Version 2.0. See `LICENSE` and `NOTICE`.
 
-A future Apache-2.0 / CC-BY-4.0 model is documented in [`LICENSING.md`](LICENSING.md), including explicit treatment of JSON Schema, OpenAPI, conformance vectors, policy bundles, normative prose, and trademarks. That future model is not active until separately approved and committed.
+Changelog version `0.1.0` remains under the proprietary terms present when that section was recorded. The next published semantic release is the first Apache-2.0 release.
 
-## Residual blockers for open-source/contribution enrollment
+An optional later CC-BY-4.0 split for human-authored normative prose is documented in [`LICENSING.md`](LICENSING.md) and is not active. Trademarks are not licensed except for reasonable attribution. A fork may not claim EvoCortexAI approval or canonical status.
 
-1. Founder + legal approval of the final outbound licensing model.
-2. Final license texts, SPDX/file-level boundary, and third-party notices.
-3. Inbound contribution terms (DCO/CLA decision).
-4. Public-safe CI for untrusted external contributions.
-5. Contributor governance and review rules.
-6. Completion of the Phase B gates in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
+This change licenses current development source; it does not by itself open external contributions or make a production ethics enforcement claim.
+
+## Residual blockers for contribution enrollment
+
+1. Optional CC-BY-4.0 prose split and file-level SPDX boundary, if still desired.
+2. Inbound contribution terms (DCO/CLA decision).
+3. Public-safe CI for untrusted external contributions.
+4. Contributor governance and review rules.
+5. Completion of the remaining Phase B gates in `docs/PUBLIC-RELEASE-CHECKLIST.md`.
 
 Until those are closed, external contributions remain disabled by policy and the project remains `In development; not production-ready`.
 
